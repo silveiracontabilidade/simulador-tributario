@@ -1,0 +1,49 @@
+.lista-container {
+  padding: 20px;
+}
+
+/* ---- TABELA ---- */
+.tabela,
+.simulacoes-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 12.6px;
+}
+
+.tabela th,
+.simulacoes-table th,
+.tabela td,
+.simulacoes-table td {
+  border: 1px solid #ddd;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.tabela th,
+.simulacoes-table th {
+  background: #0c0636;
+  color: #fff;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.tabela tr:nth-child(even),
+.simulacoes-table tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.tabela tr:hover,
+.simulacoes-table tr:hover {
+  background: #f3f3f3;
+}
+
+/* ---- AÇÕES (ícones) ---- */
+.acoes {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}

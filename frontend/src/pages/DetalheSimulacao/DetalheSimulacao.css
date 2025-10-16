@@ -1,0 +1,25 @@
+.detalhe-container {
+  padding: 20px;
+}
+
+.comparativo {
+  margin-top: 20px;
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.tabela th,
+.tabela td {
+  border: 1px solid #ccc;
+  padding: 6px;
+  text-align: center;
+}
+
+.tabela th {
+  background: #0c0636;
+  color: #fff;
+}

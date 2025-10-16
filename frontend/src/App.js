@@ -1,25 +1,27 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useState } from "react";
+import "./App.css";
+import Header from "./components/Header";
+import Sidebar from "./components/Sidebar";
+import ComparativoTributario from "./pages/ComparativoTributario";
 
-function App() {
+export default function App() {
+  const [activePage, setActivePage] = useState("comparativo");
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="app-container">
+      <Header title="SMART CSI" />
+
+      <div className="layout">
+        <Sidebar activeKey={activePage} onSelect={setActivePage} />
+
+        <main className="content">
+          {activePage === "comparativo" ? (
+            <ComparativoTributario />
+          ) : (
+            <h2>Bem-vindo</h2>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
-
-export default App;
