@@ -1,0 +1,14 @@
+asgiref==3.9.2
+Django==5.2.6
+django-cors-headers==4.9.0
+djangorestframework==3.16.1
+fdb==2.0.4
+firebird-base==2.0.2
+firebird-driver==2.0.2
+mysqlclient==2.2.7
+protobuf==5.29.5
+pyodbc==5.2.0
+python-dateutil==2.9.0.post0
+python-dotenv==1.1.1
+six==1.17.0
+sqlparse==0.5.3
