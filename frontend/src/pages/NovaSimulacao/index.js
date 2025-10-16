@@ -263,9 +263,14 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
   const onChange = (name, value) => setForm((p) => ({ ...p, [name]: value }));
 
   const handleValorChange = (name) => (event) => {
-    const raw = event.target.value;
-    const limpo = raw.replace(/[^0-9.,-]/g, "");
-    onChange(name, limpo);
+    const raw = event.target.value || "";
+    const apenasDigitos = raw.replace(/\D/g, "");
+    if (!apenasDigitos) {
+      onChange(name, "");
+      return;
+    }
+    const numero = (parseInt(apenasDigitos, 10) / 100).toFixed(2);
+    onChange(name, formatarValorBR(numero));
   };
 
   const handleImportarSCI = () => {

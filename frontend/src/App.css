@@ -5,6 +5,8 @@
   --azul: #0f0636;
   --dourado: #d1b166;
   --cinza-borda: #eaeaea;
+  --banner-uat-bg: #ffe08a;
+  --banner-uat-text: #8a5800;
 }
 
 /* =========================================
@@ -15,6 +17,16 @@
   flex-direction: column;
   height: 100vh;
   font-family: "Segoe UI", sans-serif;
+}
+
+.env-banner {
+  background-color: var(--banner-uat-bg);
+  color: var(--banner-uat-text);
+  text-align: center;
+  padding: 0.4rem 1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
 }
 
 .layout {
