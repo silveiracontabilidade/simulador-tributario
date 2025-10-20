@@ -186,6 +186,9 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
   const [form, setForm] = useState({
     empresa: "",
     empresa_nome: "",
+    empresa_cnpj: "",
+    empresa_cnae: "",
+    empresa_municipio: "",
     regime_atual: "Presumido",
     receita_total: "",
     receita_mercadorias: "",
@@ -222,11 +225,26 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
       (initialData.empresa && initialData.empresa.razao_social) ||
       initialData.empresa_nome ||
       "";
+    const empresaObjeto =
+      initialData.empresa && typeof initialData.empresa === "object" ? initialData.empresa : {};
 
     setForm((prev) => ({
       ...prev,
       empresa: empresaId ? String(empresaId) : "",
       empresa_nome: empresaNome,
+      empresa_cnpj:
+        empresaObjeto.cnpj ||
+        initialData.empresa_cnpj ||
+        initialData.cnpj ||
+        prev.empresa_cnpj,
+      empresa_cnae:
+        empresaObjeto.cnae_principal ||
+        initialData.cnae_principal ||
+        prev.empresa_cnae,
+      empresa_municipio:
+        empresaObjeto.municipio ||
+        initialData.municipio ||
+        prev.empresa_municipio,
       regime_atual: initialData.regime_atual || prev.regime_atual,
       receita_total: formatarValorBR(initialData.receita_total),
       receita_mercadorias: formatarValorBR(initialData.receita_mercadorias),
@@ -408,6 +426,16 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
         });
         atualizado.empresa = empresaRegistrada ? String(empresaRegistrada.id) : prev.empresa;
         atualizado.empresa_nome = empresaRegistrada?.razao_social || prev.empresa_nome;
+        atualizado.empresa_cnpj = empresaRegistrada?.cnpj || prev.empresa_cnpj;
+        atualizado.empresa_cnae = empresaRegistrada?.cnae_principal || prev.empresa_cnae;
+        atualizado.empresa_municipio = empresaRegistrada?.municipio || prev.empresa_municipio;
+        const regimePreferido =
+          (empresaRegistrada?.regime_tributario && empresaRegistrada.regime_tributario !== "Outras"
+            ? empresaRegistrada.regime_tributario
+            : empresaRegistrada?.planilha_regime);
+        if (regimePreferido) {
+          atualizado.regime_atual = regimePreferido;
+        }
         return atualizado;
       });
 
@@ -459,47 +487,76 @@ return (
     <div className="card">
       <h4>Identificação</h4>
 
-      <div className="form-row">
-        <label>Empresa</label>
-        <div style={{ display: "flex", gap: 8 }}>
+      <div className="grid-empresa">
+        <div>
+          <label>Empresa</label>
+          <div className="empresa-selecao">
+            <input
+              type="text"
+              readOnly
+              value={form.empresa_nome}
+              placeholder="Nenhuma empresa selecionada"
+            />
+            <button type="button" onClick={() => setShowEmpresaModal(true)}>🔍</button>
+          </div>
+        </div>
+        <div>
+          <label>CNPJ</label>
           <input
             type="text"
             readOnly
-            value={form.empresa_nome}
-            placeholder="Nenhuma empresa selecionada"
-            style={{ flex: 1 }}
+            value={form.empresa_cnpj}
+            placeholder="CNPJ não selecionado"
           />
-          <button type="button" onClick={() => setShowEmpresaModal(true)}>🔍</button>
         </div>
       </div>
 
-      <div className="grid-3">
-          <div>
-            <label>Regime atual</label>
-            <select
-              value={form.regime_atual}
-              onChange={(e) => onChange("regime_atual", e.target.value)}
-            >
-              <option value="Simples">Simples Nacional</option>
-              <option value="Presumido">Lucro Presumido</option>
-              <option value="Real">Lucro Real</option>
-            </select>
-          </div>
-          <div>
-            <label>ISS (%)</label>
-            <input
-              inputMode="decimal"
-              value={form.aliquota_iss}
-              onChange={(e) => onChange("aliquota_iss", e.target.value)}
-            />
-          </div>
-          <div>
-            <label>ICMS (%)</label>
-            <input
-              inputMode="decimal"
-              value={form.aliquota_icms}
-              onChange={(e) => onChange("aliquota_icms", e.target.value)}
-            />
+      <div className="grid-identificacao">
+        <div>
+          <label>Regime atual</label>
+          <select
+            value={form.regime_atual}
+            onChange={(e) => onChange("regime_atual", e.target.value)}
+          >
+            <option value="Simples">Simples Nacional</option>
+            <option value="Presumido">Lucro Presumido</option>
+            <option value="Real">Lucro Real</option>
+            <option value="Outras">Outras</option>
+          </select>
+        </div>
+        <div>
+          <label>ISS (%)</label>
+          <input
+            inputMode="decimal"
+            value={form.aliquota_iss}
+            onChange={(e) => onChange("aliquota_iss", e.target.value)}
+          />
+        </div>
+        <div>
+          <label>ICMS (%)</label>
+          <input
+            inputMode="decimal"
+            value={form.aliquota_icms}
+            onChange={(e) => onChange("aliquota_icms", e.target.value)}
+          />
+        </div>
+        <div>
+          <label>CNAE</label>
+          <input
+            type="text"
+            readOnly
+            value={form.empresa_cnae}
+            placeholder="CNAE não selecionado"
+          />
+        </div>
+        <div>
+          <label>Município</label>
+          <input
+            type="text"
+            readOnly
+            value={form.empresa_municipio}
+            placeholder="Município não informado"
+          />
         </div>
       </div>
     </div>
@@ -710,8 +767,19 @@ return (
       open={showEmpresaModal}
       onClose={() => setShowEmpresaModal(false)}
       onSelect={(empresa) => {
-        onChange("empresa", empresa.id);
-        onChange("empresa_nome", empresa.razao_social);
+        const regimePreferido =
+          (empresa.regime_tributario && empresa.regime_tributario !== "Outras"
+            ? empresa.regime_tributario
+            : empresa.planilha_regime);
+        setForm((prev) => ({
+          ...prev,
+          empresa: String(empresa.id),
+          empresa_nome: empresa.razao_social || "",
+          empresa_cnpj: empresa.cnpj || "",
+          empresa_cnae: empresa.cnae_principal || "",
+          empresa_municipio: empresa.municipio || "",
+          regime_atual: regimePreferido || prev.regime_atual,
+        }));
         setShowEmpresaModal(false);
       }}
     />
@@ -763,6 +831,7 @@ function ModalPesquisarEmpresa({ open, onClose, onSelect }) {
     cnae_principal: "",
     municipio: "",
     uf: "",
+    regime_tributario: "Outras",
   });
 
   useEffect(() => {
@@ -776,12 +845,17 @@ function ModalPesquisarEmpresa({ open, onClose, onSelect }) {
 
   if (!open) return null;
 
-  const filtradas = empresas.filter((e) =>
-    e.razao_social.toLowerCase().includes(busca.toLowerCase()) ||
-    e.cnpj.includes(busca) ||
-    e.municipio.toLowerCase().includes(busca.toLowerCase()) ||
-    e.uf.toLowerCase().includes(busca.toLowerCase())
-  );
+  const buscaLower = busca.toLowerCase();
+  const filtradas = empresas.filter((e) => {
+    const regimeTexto = (e.regime_tributario || e.planilha_regime || "").toLowerCase();
+    return (
+      e.razao_social.toLowerCase().includes(buscaLower) ||
+      e.cnpj.includes(busca) ||
+      e.municipio.toLowerCase().includes(buscaLower) ||
+      e.uf.toLowerCase().includes(buscaLower) ||
+      regimeTexto.includes(buscaLower)
+    );
+  });
 
   const handleSalvar = async () => {
     if (editarEmpresa) {
@@ -792,12 +866,26 @@ function ModalPesquisarEmpresa({ open, onClose, onSelect }) {
       setEmpresas((prev) => [...prev, data]);
     }
     setMostrarForm(false);
-    setNova({ razao_social: "", cnpj: "", cnae_principal: "", municipio: "", uf: "" });
+    setNova({
+      razao_social: "",
+      cnpj: "",
+      cnae_principal: "",
+      municipio: "",
+      uf: "",
+      regime_tributario: "Outras",
+    });
     setEditarEmpresa(null);
   };
 
   const handleEditar = (empresa) => {
-    setNova(empresa);
+    setNova({
+      razao_social: empresa.razao_social || "",
+      cnpj: empresa.cnpj || "",
+      cnae_principal: empresa.cnae_principal || "",
+      municipio: empresa.municipio || "",
+      uf: empresa.uf || "",
+      regime_tributario: empresa.regime_tributario || empresa.planilha_regime || "Outras",
+    });
     setEditarEmpresa(empresa.id);
     setMostrarForm(true);
   };
@@ -819,7 +907,14 @@ function ModalPesquisarEmpresa({ open, onClose, onSelect }) {
             <button
               className="btn-primary"
               onClick={() => {
-                setNova({ razao_social: "", cnpj: "", cnae_principal: "", municipio: "", uf: "" });
+                setNova({
+                  razao_social: "",
+                  cnpj: "",
+                  cnae_principal: "",
+                  municipio: "",
+                  uf: "",
+                  regime_tributario: "Outras",
+                });
                 setEditarEmpresa(null);
                 setMostrarForm(true);
               }}
@@ -874,18 +969,37 @@ function ModalPesquisarEmpresa({ open, onClose, onSelect }) {
                   ))}
                 </select>
               </div>
+              <div className="form-row">
+                <label>Regime Tributário</label>
+                <select
+                  value={nova.regime_tributario}
+                  onChange={(e) => setNova({ ...nova, regime_tributario: e.target.value })}
+                >
+                  <option value="Simples">Simples Nacional</option>
+                  <option value="Presumido">Lucro Presumido</option>
+                  <option value="Real">Lucro Real</option>
+                  <option value="Outras">Outras</option>
+                </select>
+              </div>
             </div>
             <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
               <button onClick={handleSalvar}>{editarEmpresa ? "Salvar Alterações" : "Salvar"}</button>
               <button
-                  className="btn-outline"
-                  onClick={() => {
-                    setMostrarForm(false);
-                    setEditarEmpresa(null);
-                    setNova({ razao_social: "", cnpj: "", cnae_principal: "", municipio: "", uf: "" });
-                  }}
-                >
-                  Cancelar
+                className="btn-outline"
+                onClick={() => {
+                  setMostrarForm(false);
+                  setEditarEmpresa(null);
+                  setNova({
+                    razao_social: "",
+                    cnpj: "",
+                    cnae_principal: "",
+                    municipio: "",
+                    uf: "",
+                    regime_tributario: "Outras",
+                  });
+                }}
+              >
+                Cancelar
               </button>
             </div>
           </div>
@@ -910,6 +1024,7 @@ function ModalPesquisarEmpresa({ open, onClose, onSelect }) {
                 <th>CNAE</th>
                 <th>Município</th>
                 <th>UF</th>
+                <th>Regime</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -921,6 +1036,7 @@ function ModalPesquisarEmpresa({ open, onClose, onSelect }) {
                   <td>{e.cnae_principal}</td>
                   <td>{e.municipio}</td>
                   <td>{e.uf}</td>
+                  <td>{e.regime_tributario || e.planilha_regime || "Outras"}</td>
                   <td style={{ display: "flex", gap: 6 }}>
                     <button onClick={() => onSelect(e)}>Selecionar</button>
                     <button className="btn-outline" onClick={() => handleEditar(e)}>✏️</button>
@@ -936,7 +1052,7 @@ function ModalPesquisarEmpresa({ open, onClose, onSelect }) {
               ))}
               {filtradas.length === 0 && (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: "center" }}>Nenhuma empresa encontrada</td>
+                  <td colSpan="7" style={{ textAlign: "center" }}>Nenhuma empresa encontrada</td>
                 </tr>
               )}
             </tbody>

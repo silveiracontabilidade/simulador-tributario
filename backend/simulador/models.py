@@ -4,11 +4,23 @@ from django.db import models
 # Empresa
 # ------------------------
 class Empresa(models.Model):
+    REGIME_CHOICES = [
+        ("Simples", "Simples Nacional"),
+        ("Presumido", "Lucro Presumido"),
+        ("Real", "Lucro Real"),
+        ("Outras", "Outras"),
+    ]
+
     razao_social = models.CharField(max_length=255)
     cnpj = models.CharField(max_length=18, unique=True)
     cnae_principal = models.CharField(max_length=10)
     municipio = models.CharField(max_length=100)
     uf = models.CharField(max_length=2)
+    regime_tributario = models.CharField(
+        max_length=20,
+        choices=REGIME_CHOICES,
+        default="Outras",
+    )
 
     def __str__(self):
         return f"{self.razao_social} ({self.cnpj})"
@@ -22,6 +34,7 @@ class Simulacao(models.Model):
         ("Simples", "Simples Nacional"),
         ("Presumido", "Lucro Presumido"),
         ("Real", "Lucro Real"),
+        ("Outras", "Outras"),
     ]
 
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name="simulacoes")
@@ -155,3 +168,17 @@ class AliquotaFederal(models.Model):
 
     def __str__(self):
         return f"{self.imposto} ({self.aliquota}%)"
+
+
+# ------------------------
+# Base DP (Planilha Gerencial)
+# ------------------------
+class PlanilhaGerencial(models.Model):
+    cod_folha = models.CharField(max_length=10, db_column="Cod_folha", primary_key=True)
+    cnpj = models.CharField(max_length=50, db_column="CNPJ", null=True, blank=True)
+    cnpj_original = models.CharField(max_length=50, db_column="CNPJ_Original", null=True, blank=True)
+    tributacao = models.CharField(max_length=100, db_column="Tributacao", null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "geral_planilha_gerencial"

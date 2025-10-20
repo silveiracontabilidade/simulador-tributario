@@ -7,6 +7,14 @@
   --cinza-borda: #eaeaea;
   --banner-uat-bg: #ffe08a;
   --banner-uat-text: #8a5800;
+  --scale-factor: 0.9;
+}
+
+.app-scale {
+  transform: scale(var(--scale-factor));
+  transform-origin: top left;
+  width: calc(100% / var(--scale-factor));
+  height: calc(100vh / var(--scale-factor));
 }
 
 /* =========================================
@@ -15,7 +23,7 @@
 .app-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: calc(100vh / var(--scale-factor));
   font-family: "Segoe UI", sans-serif;
 }
 
@@ -207,6 +215,8 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
+  width: calc(100vw / var(--scale-factor));
+  height: calc(100vh / var(--scale-factor));
   background: rgba(0,0,0,0.5);
   display: flex;
   align-items: center;

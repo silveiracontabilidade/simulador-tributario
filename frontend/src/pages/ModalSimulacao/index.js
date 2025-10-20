@@ -22,22 +22,33 @@ export default function ModalSimulacao({ aberto, onClose, simulacao }) {
   const simplesDisponivel = receitaTotal <= LIMITE_SIMPLES;
 
   // lista única de impostos
-  const impostos = [...new Set(simulacao.resultados.map((r) => r.imposto))];
+  const impostos = [
+    ...new Set(
+      simulacao.resultados
+        .map((r) => r.imposto)
+        .filter((imp) => imp !== "TOTAL")
+    ),
+  ];
 
   // totais por regime
-  const totalPorRegime = {
-    Simples: simplesDisponivel
-      ? simulacao.resultados
-          .filter((r) => r.regime === "Simples")
-          .reduce((acc, r) => acc + Number(r.valor), 0)
-      : null,
-    Presumido: simulacao.resultados
-      .filter((r) => r.regime === "Presumido")
-      .reduce((acc, r) => acc + Number(r.valor), 0),
-    Real: simulacao.resultados
-      .filter((r) => r.regime === "Real")
-      .reduce((acc, r) => acc + Number(r.valor), 0),
-  };
+  const totalPorRegime = ["Simples", "Presumido", "Real"].reduce(
+    (acc, regime) => {
+      const resultadosRegime = simulacao.resultados.filter(
+        (r) => r.regime === regime
+      );
+      const totalRow = resultadosRegime.find((r) => r.imposto === "TOTAL");
+      const totalValor = totalRow
+        ? Number(totalRow.valor)
+        : resultadosRegime.reduce((sum, r) => sum + Number(r.valor), 0);
+
+      return {
+        ...acc,
+        [regime]:
+          regime === "Simples" && !simplesDisponivel ? null : totalValor,
+      };
+    },
+    {}
+  );
 
   // melhor regime (ignora Simples se indisponível)
   const regimesValidos = Object.entries(totalPorRegime).filter(
@@ -188,4 +199,3 @@ export default function ModalSimulacao({ aberto, onClose, simulacao }) {
     </div>
   );
 }
-

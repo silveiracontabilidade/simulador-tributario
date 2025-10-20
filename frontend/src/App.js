@@ -15,20 +15,22 @@ export default function App() {
   }, []);
 
   return (
-    <div className="app-container">
-      {banner}
-      <Header title="SMART CSI" />
+    <div className="app-scale">
+      <div className="app-container">
+        {banner}
+        <Header title="SMART CSI" />
 
-      <div className="layout">
-        <Sidebar activeKey={activePage} onSelect={setActivePage} />
+        <div className="layout">
+          <Sidebar activeKey={activePage} onSelect={setActivePage} />
 
-        <main className="content">
-          {activePage === "comparativo" ? (
-            <ComparativoTributario />
-          ) : (
-            <h2>Bem-vindo</h2>
-          )}
-        </main>
+          <main className="content">
+            {activePage === "comparativo" ? (
+              <ComparativoTributario />
+            ) : (
+              <h2>Bem-vindo</h2>
+            )}
+          </main>
+        </div>
       </div>
     </div>
   );

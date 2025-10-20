@@ -125,6 +125,54 @@ button:hover {
   flex-direction: column;
 }
 
+.grid-empresa {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: end;
+}
+
+.grid-empresa > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.empresa-selecao {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.empresa-selecao input,
+.empresa-selecao button {
+  margin-bottom: 0;
+}
+
+.empresa-selecao input {
+  flex: 1;
+}
+
+.empresa-selecao button {
+  flex-shrink: 0;
+}
+
+.grid-identificacao {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.grid-identificacao > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.grid-identificacao input,
+.grid-identificacao select {
+  margin-bottom: 0;
+}
+
 .grid-parametros {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -146,6 +194,12 @@ button:hover {
   max-width: 160px;
   width: 100%;
   margin-bottom: 2px;
+}
+
+@media (max-width: 640px) {
+  .grid-empresa {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 1200px) {
@@ -188,10 +242,9 @@ button:hover {
 ------------------------- */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  inset: 0;
+  width: calc(100vw / var(--scale-factor));
+  height: calc(100vh / var(--scale-factor));
   background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
