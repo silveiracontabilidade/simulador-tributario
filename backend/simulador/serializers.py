@@ -84,23 +84,6 @@ class EmpresaMiniSerializer(serializers.ModelSerializer):
     def get_planilha_regime(self, obj):
         return EmpresaSerializer._planilha_info(obj)["planilha_regime"]
 
-class SimulacaoSerializer(serializers.ModelSerializer):
-    empresa = EmpresaMiniSerializer(read_only=True)
-    empresa_id = serializers.PrimaryKeyRelatedField(
-        queryset=Empresa.objects.all(),
-        source="empresa",
-        write_only=True
-    )
-    resultados = ResultadoSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = Simulacao
-        fields = "__all__"
-
-
-# ------------------------
-# TABELAS AUXILIARES
-# ------------------------
 class CnaeImpedimentoSerializer(serializers.ModelSerializer):
     class Meta:
         model = CnaeImpedimento
@@ -117,6 +100,31 @@ class AnexoSimplesSerializer(serializers.ModelSerializer):
     class Meta:
         model = AnexoSimples
         fields = "__all__"
+
+
+class SimulacaoSerializer(serializers.ModelSerializer):
+    empresa = EmpresaMiniSerializer(read_only=True)
+    empresa_id = serializers.PrimaryKeyRelatedField(
+        queryset=Empresa.objects.all(),
+        source="empresa",
+        write_only=True
+    )
+    resultados = ResultadoSerializer(many=True, read_only=True)
+    anexo_manual = serializers.PrimaryKeyRelatedField(
+        queryset=AnexoSimples.objects.all(),
+        allow_null=True,
+        required=False
+    )
+    anexo_manual_detalhe = AnexoSimplesSerializer(source="anexo_manual", read_only=True)
+
+    class Meta:
+        model = Simulacao
+        fields = "__all__"
+
+
+# ------------------------
+# TABELAS AUXILIARES
+# ------------------------
 
 
 class FaixaSimplesSerializer(serializers.ModelSerializer):

@@ -67,6 +67,13 @@ class Simulacao(models.Model):
     exclusoes_fiscais = models.DecimalField(max_digits=15, decimal_places=2, default=0)
 
     lucro_contabil = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    anexo_manual = models.ForeignKey(
+        "AnexoSimples",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="simulacoes",
+    )
 
     def __str__(self):
         return f"Simulação {self.id} - {self.empresa}"

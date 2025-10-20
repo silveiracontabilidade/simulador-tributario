@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { EmpresaAPI, SimulacaoAPI, BalanceteAPI } from "../../api";
+import { EmpresaAPI, SimulacaoAPI, BalanceteAPI, AnexoSimplesAPI } from "../../api";
 import Modal from "../../components/Modal";
 import { consolidarBalancete } from "./balanceteMap";
 import "./NovaSimulacao.css";
@@ -182,6 +182,7 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
     dataInicio: startOfYearISO(),
     dataFim: todayISO(),
   });
+  const [anexos, setAnexos] = useState([]);
 
   const [form, setForm] = useState({
     empresa: "",
@@ -190,6 +191,7 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
     empresa_cnae: "",
     empresa_municipio: "",
     regime_atual: "Presumido",
+    anexo_manual: "",
     receita_total: "",
     receita_mercadorias: "",
     receita_servicos: "",
@@ -212,6 +214,13 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
   const formValido = useMemo(() => {
     return String(form.empresa).length > 0 && String(form.receita_total).length > 0;
   }, [form]);
+
+  useEffect(() => {
+    AnexoSimplesAPI.list().then(({ data }) => {
+      const lista = Array.isArray(data) ? data : data.results || [];
+      setAnexos(lista);
+    });
+  }, []);
 
   useEffect(() => {
     if (!initialData) return;
@@ -246,6 +255,9 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
         initialData.municipio ||
         prev.empresa_municipio,
       regime_atual: initialData.regime_atual || prev.regime_atual,
+      anexo_manual: initialData.anexo_manual
+        ? String(initialData.anexo_manual)
+        : prev.anexo_manual || "",
       receita_total: formatarValorBR(initialData.receita_total),
       receita_mercadorias: formatarValorBR(initialData.receita_mercadorias),
       receita_servicos: formatarValorBR(initialData.receita_servicos),
@@ -308,6 +320,7 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
       const payload = {
         empresa_id: Number(form.empresa),   // 👈 alterar aqui
         regime_atual: form.regime_atual,
+        anexo_manual: form.anexo_manual ? Number(form.anexo_manual) : null,
         receita_total: toDotNumber(form.receita_total),
         receita_mercadorias: toDotNumber(form.receita_mercadorias),
         receita_servicos: toDotNumber(form.receita_servicos),
@@ -522,6 +535,20 @@ return (
             <option value="Presumido">Lucro Presumido</option>
             <option value="Real">Lucro Real</option>
             <option value="Outras">Outras</option>
+          </select>
+        </div>
+        <div>
+          <label>Anexo Simples</label>
+          <select
+            value={form.anexo_manual}
+            onChange={(e) => onChange("anexo_manual", e.target.value)}
+          >
+            <option value="">Automático (CNAE / Fator R)</option>
+            {anexos.map((anexo) => (
+              <option key={anexo.id} value={anexo.id}>
+                {`Anexo ${anexo.numero}${anexo.atividade ? ` - ${anexo.atividade}` : ""}`}
+              </option>
+            ))}
           </select>
         </div>
         <div>

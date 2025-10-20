@@ -56,6 +56,8 @@ class CalculadoraTributaria:
         self.adicoes_fiscais = _q(self.s.adicoes_fiscais)
         self.exclusoes_fiscais = _q(self.s.exclusoes_fiscais)
         self.lucro_contabil = _q(self.s.lucro_contabil or 0)
+        anexo_manual = getattr(self.s, "anexo_manual", None)
+        self.anexo_manual_numero = anexo_manual.numero if anexo_manual else None
 
         self.receita_domestica = _q(self.receita_total - self.receita_exportacao)
         self.fator_r = _q(0 if self.receita_total == 0 else self.folha_total / self.receita_total)
@@ -101,8 +103,8 @@ class CalculadoraTributaria:
 
         das_serv = D("0.00")
         if self.receita_servicos > 0:
-            anexo_serv: Optional[int] = None
-            if cnae:
+            anexo_serv: Optional[int] = self.anexo_manual_numero
+            if not anexo_serv and cnae:
                 link = CnaeAnexo.objects.filter(cnae=cnae).first()
                 if link:
                     anexo_serv = link.anexo.numero
