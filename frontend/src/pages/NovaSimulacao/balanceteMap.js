@@ -20,20 +20,29 @@ const parseSaldo = (valor) => {
   return Number.isFinite(num) ? num : 0;
 };
 
-const prepararLinhas = (dados) =>
-  Array.isArray(dados)
+// Permite escolher qual campo usar como valor (ex.: bdsaldo_atual ou movimento do período)
+// campoValor pode ser string ou array de candidatos; escolhe o primeiro existente em cada linha
+const prepararLinhas = (dados, campoValor = "bdsaldo_atual") => {
+  const candidatos = Array.isArray(campoValor)
+    ? [...campoValor, "bdsaldo_atual"]
+    : [campoValor, "bdsaldo_atual"];
+
+  return Array.isArray(dados)
     ? dados.map((linha) => {
         const { raw, normalized } = sanitizeCode(linha?.bdctalon ?? linha?.bdcodcta ?? "");
+        const key = candidatos.find((k) => Object.prototype.hasOwnProperty.call(linha || {}, k));
+        const valor = key ? linha[key] : linha?.bdsaldo_atual;
         return {
           ...linha,
           codigoRaw: raw,
           codigo: normalized,
-          saldo: parseSaldo(linha?.bdsaldo_atual),
+          saldo: parseSaldo(valor),
           nome: String(linha?.bdnomcta || "").toLowerCase(),
           analitica: Number(linha?.bdtipcta) > 0,
         };
       })
     : [];
+};
 
 const normalizePrefix = (prefix) => sanitizeCode(prefix).normalized;
 
@@ -61,9 +70,10 @@ const somaPorPredicado = (linhas, predicado) =>
   linhas.reduce((total, linha) => (predicado(linha) ? total + linha.saldo : total), 0);
 
 const RECEITA_TOTAL_CODES = ["03", "3"];
-const RECEITA_MERCADORIAS_PREFIXES = ["03.1.1.01", "03.1.1.05", "03.1.1.06"];
-const RECEITA_SERVICOS_PREFIXES = ["03.1.1.03"];
-const RECEITA_EXPORTACAO_PREFIXES = ["03.1.1.02", "03.1.1.04"];
+// Contas agregadoras (sem somar filhas) para evitar duplicidade
+const RECEITA_MERCADORIAS_CODES = ["03.1.1.01", "03.1.1.05", "03.1.1.06"];
+const RECEITA_SERVICOS_CODES = ["03.1.1.03"];
+const RECEITA_EXPORTACAO_CODES = ["03.1.1.02", "03.1.1.04"];
 const RECEITA_DEDUCOES_PREFIXES = ["03.1.2"];
 const RECEITA_FINANCEIRA_PREFIXES = ["03.1.3"];
 const RECEITA_OUTRAS_PREFIXES = ["03.2"];
@@ -108,22 +118,24 @@ const ehCreditoCofins = (linha) =>
 
 const arredonda = (valor) => Number.parseFloat(Number(valor || 0).toFixed(2));
 
-export const consolidarBalancete = (dados) => {
-  const linhas = prepararLinhas(dados);
+export const consolidarBalancete = (dados, campoValor = "bdsaldo_atual") => {
+  const linhas = prepararLinhas(dados, campoValor);
   if (!linhas.length) return {};
 
-  const receitaMercadorias = somaPorPrefixos(linhas, RECEITA_MERCADORIAS_PREFIXES, {
-    somenteAnaliticas: true,
-  });
-  const receitaServicos = somaPorPrefixos(linhas, RECEITA_SERVICOS_PREFIXES, {
-    somenteAnaliticas: true,
-  });
-  const receitaExportacao = somaPorPrefixos(linhas, RECEITA_EXPORTACAO_PREFIXES, {
-    somenteAnaliticas: true,
-  });
-  const receitaDeducoes = somaPorPrefixos(linhas, RECEITA_DEDUCOES_PREFIXES, {
-    somenteAnaliticas: false,
-  });
+  const receitaMercadorias = RECEITA_MERCADORIAS_CODES.reduce(
+    (acc, code) => acc + valorPorCodigo(linhas, [code]),
+    0
+  );
+  const receitaServicos = RECEITA_SERVICOS_CODES.reduce(
+    (acc, code) => acc + valorPorCodigo(linhas, [code]),
+    0
+  );
+  const receitaExportacao = RECEITA_EXPORTACAO_CODES.reduce(
+    (acc, code) => acc + valorPorCodigo(linhas, [code]),
+    0
+  );
+  // Deduções: para exibição apenas; não usar como redutor da base do Simples
+  const receitaDeducoes = valorPorCodigo(linhas, RECEITA_DEDUCOES_PREFIXES);
   const receitaFinanceira = somaPorPrefixos(linhas, RECEITA_FINANCEIRA_PREFIXES, {
     somenteAnaliticas: true,
   });
@@ -132,16 +144,16 @@ export const consolidarBalancete = (dados) => {
   });
 
   const receitaTotalLinha = valorPorCodigo(linhas, RECEITA_TOTAL_CODES);
-  const receitaTotalCalculada =
-    receitaMercadorias +
-    receitaServicos +
-    receitaExportacao +
-    receitaFinanceira +
-    outrasReceitas +
-    receitaDeducoes;
-  const receitaTotal =
-    receitaTotalLinha !== 0 ? receitaTotalLinha : receitaTotalCalculada;
-  const receitaOutros = receitaTotal - receitaTotalCalculada;
+  // Receita bruta do período para o Simples: usar conta 03 quando disponível
+  const receitaBruta = receitaTotalLinha !== 0
+    ? receitaTotalLinha
+    : receitaMercadorias + receitaServicos + receitaExportacao; // fallback mínimo
+
+  // Receita total contábil (exibível): receita bruta + financeiras + outras (quando 03 não traz esse total)
+  const receitaTotalCalculada = receitaBruta + receitaFinanceira + outrasReceitas;
+  const receitaTotal = receitaTotalLinha !== 0 ? receitaTotalLinha : receitaTotalCalculada;
+  // Outras receitas (exibição): diferença para evitar dupla contagem
+  const receitaOutros = receitaTotal - (receitaMercadorias + receitaServicos);
 
   const custoMercadorias = somaPorPrefixos(linhas, CUSTO_MERCADORIAS_PREFIXES, {
     somenteAnaliticas: true,
@@ -166,11 +178,12 @@ export const consolidarBalancete = (dados) => {
 
   return {
     receita_total: arredonda(receitaTotal),
+    receita_bruta: arredonda(receitaBruta),
     receita_mercadorias: arredonda(receitaMercadorias),
     receita_servicos: arredonda(receitaServicos),
     receita_exportacao: arredonda(receitaExportacao),
     receita_financeira: arredonda(receitaFinanceira),
-    outras_receitas: arredonda(outrasReceitas),
+    outras_receitas: arredonda(receitaOutros),
     receita_deducoes: arredonda(receitaDeducoes),
     receita_outros: arredonda(receitaOutros),
     custo_total: arredonda(custoTotalLinha),

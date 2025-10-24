@@ -1,5 +1,7 @@
 .nova-container {
   padding: 12px;
+  max-width: 1080px;
+  margin: 0 auto;
 }
 
 /* ------------------------
@@ -91,7 +93,7 @@ button:hover {
   padding: 8px 10px;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 
 .card h4 {
@@ -173,27 +175,151 @@ button:hover {
   margin-bottom: 0;
 }
 
-.grid-parametros {
+.grid-receitas,
+.grid-custos,
+.grid-impostos {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px 12px;
-  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
 }
 
-.grid-parametros .param-col {
+.grid-receitas input,
+.grid-custos input,
+.grid-impostos input {
+  margin-bottom: 0;
+}
+
+.grid-folha {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.grid-folha input {
+  margin-bottom: 0;
+}
+
+.card-header-inline {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 8px;
 }
 
-.grid-parametros .param-col label {
-  margin-bottom: 1px;
+.card-subtitle {
+  font-size: 11px;
+  color: #666;
 }
 
-.grid-parametros .param-col input {
-  max-width: 160px;
+.rateio-empty {
+  text-align: center;
+  padding: 6px 0;
+  color: #777;
+  font-style: italic;
+}
+
+/* --- Tabs e Accordion (UX melhoria) --- */
+.tabs-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 56px;
+  background: #fff;
+  z-index: 5;
+  padding: 6px 0 8px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 8px;
+}
+.tabs-nav .tab {
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #f5f6f8;
+  color: #333;
+  border: 1px solid #e5e7eb;
+  font-size: 12px;
+}
+.tabs-nav .tab.active {
+  background: #e8eefc;
+  color: #1f3a8a;
+  border-color: #c7d2fe;
+}
+
+.card.collapsible .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  margin: 0 0 8px 0;
+}
+.card.collapsible .card-header h4 {
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+.card.collapsible .card-body { display: block; }
+.card.collapsible.collapsed .card-body { display: none; }
+.card-chevron { font-size: 16px; line-height: 1; color: #666; }
+
+.rateio-wrapper {
+  margin: 6px 0 10px;
+  background: #f7f7f7;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.rateio-table {
   width: 100%;
-  margin-bottom: 2px;
+  border-collapse: collapse;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+.rateio-table th,
+.rateio-table td {
+  border: 1px solid #ddd;
+  padding: 4px 6px;
+  text-align: left;
+}
+
+.rateio-table td input,
+.rateio-table td select {
+  margin-bottom: 0;
+}
+
+.rateio-summary {
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+.grid-encargos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.grid-encargos input[type="number"] {
+  margin-bottom: 0;
+}
+
+.cprb-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-row input[type="checkbox"] {
+  margin-bottom: 0;
 }
 
 @media (max-width: 640px) {

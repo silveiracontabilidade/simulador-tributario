@@ -45,10 +45,15 @@ class Simulacao(models.Model):
     receita_mercadorias = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     receita_servicos = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     receita_exportacao = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    # Deduções e outras receitas (quando disponíveis)
+    receita_deducoes = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    outras_receitas = models.DecimalField(max_digits=15, decimal_places=2, default=0)
 
     folha_total = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     inss_patronal = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     desoneracao_folha = models.BooleanField(default=False)
+    # Alíquota única de INSS (INSS + RAT + Terceiros)
+    aliquota_inss_total = models.DecimalField(max_digits=6, decimal_places=4, default=0)
 
     aliquota_iss = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     aliquota_icms = models.DecimalField(max_digits=5, decimal_places=2, default=0)
@@ -59,6 +64,11 @@ class Simulacao(models.Model):
     custo_mercadorias = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     custo_servicos = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     despesas_operacionais = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    outras_despesas = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    pro_labore = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    despesas_nao_dedutiveis = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    investimentos = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    depreciacao = models.DecimalField(max_digits=15, decimal_places=2, default=0)
 
     creditos_pis = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     creditos_cofins = models.DecimalField(max_digits=15, decimal_places=2, default=0)
@@ -67,6 +77,18 @@ class Simulacao(models.Model):
     exclusoes_fiscais = models.DecimalField(max_digits=15, decimal_places=2, default=0)
 
     lucro_contabil = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    receita_12_meses = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    rat_percentual = models.DecimalField(max_digits=6, decimal_places=4, default=0)
+    fap_percentual = models.DecimalField(max_digits=6, decimal_places=4, default=1)
+    terceiros_percentual = models.DecimalField(max_digits=6, decimal_places=4, default=0)
+    usa_cprb = models.BooleanField(default=False)
+    cprb_percentual = models.DecimalField(max_digits=6, decimal_places=4, default=0)
+
+    # Percentuais de presunção informados pelo usuário (substitui CNAE)
+    presumido_irpj_merc = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    presumido_csll_merc = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    presumido_irpj_serv = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    presumido_csll_serv = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     anexo_manual = models.ForeignKey(
         "AnexoSimples",
         on_delete=models.SET_NULL,
@@ -119,6 +141,44 @@ class AnexoSimples(models.Model):
 
     def __str__(self):
         return f"Anexo {self.numero} - {self.atividade}"
+
+
+class SimulacaoAnexoMercadoria(models.Model):
+    simulacao = models.ForeignKey(
+        Simulacao,
+        on_delete=models.CASCADE,
+        related_name="anexos_mercadoria",
+        db_constraint=False,
+    )
+    anexo = models.ForeignKey(
+        AnexoSimples,
+        on_delete=models.PROTECT,
+        related_name="rateios_mercadoria",
+        db_constraint=False,
+    )
+    valor = models.DecimalField(max_digits=15, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.simulacao} - Mercadoria - {self.anexo} ({self.valor})"
+
+
+class SimulacaoAnexoServico(models.Model):
+    simulacao = models.ForeignKey(
+        Simulacao,
+        on_delete=models.CASCADE,
+        related_name="anexos_servico",
+        db_constraint=False,
+    )
+    anexo = models.ForeignKey(
+        AnexoSimples,
+        on_delete=models.PROTECT,
+        related_name="rateios_servico",
+        db_constraint=False,
+    )
+    valor = models.DecimalField(max_digits=15, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.simulacao} - Serviço - {self.anexo} ({self.valor})"
 
 
 class FaixaSimples(models.Model):

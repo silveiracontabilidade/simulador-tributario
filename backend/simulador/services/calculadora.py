@@ -1,11 +1,11 @@
 from decimal import Decimal, ROUND_HALF_UP
 from dataclasses import dataclass
-from typing import Optional, Dict
+from typing import Dict
 
 from django.db import transaction
 from simulador.models import (
     Simulacao, Resultado,
-    CnaeImpedimento, CnaeAnexo, FaixaSimples,
+    CnaeImpedimento, FaixaSimples,
     BasePresumido, AliquotaFixa, AliquotaFederal
 )
 
@@ -43,6 +43,7 @@ class CalculadoraTributaria:
         self.receita_exportacao = _q(self.s.receita_exportacao)
         self.folha_total = _q(self.s.folha_total)
         self.inss_patronal_informado = _q(self.s.inss_patronal)
+        self.aliq_inss_total = _q(self.s.aliquota_inss_total or 0)
         self.desoneracao = bool(self.s.desoneracao_folha)
         self.aliq_iss = _q(self.s.aliquota_iss)
         self.aliq_icms = _q(self.s.aliquota_icms)
@@ -55,9 +56,28 @@ class CalculadoraTributaria:
         self.creditos_cofins = _q(self.s.creditos_cofins)
         self.adicoes_fiscais = _q(self.s.adicoes_fiscais)
         self.exclusoes_fiscais = _q(self.s.exclusoes_fiscais)
+        self.despesas_nao_dedutiveis = _q(getattr(self.s, "despesas_nao_dedutiveis", 0) or 0)
+        self.outras_despesas = _q(getattr(self.s, "outras_despesas", 0) or 0)
         self.lucro_contabil = _q(self.s.lucro_contabil or 0)
-        anexo_manual = getattr(self.s, "anexo_manual", None)
-        self.anexo_manual_numero = anexo_manual.numero if anexo_manual else None
+        self.receita_12_meses = _q(self.s.receita_12_meses or 0)
+        self.rateios_mercadoria = list(
+            self.s.anexos_mercadoria.select_related("anexo").all()
+        )
+        self.rateios_servico = list(
+            self.s.anexos_servico.select_related("anexo").all()
+        )
+        # Percentuais antigos não são mais utilizados para INSS (RAT/FAP/Terceiros/CPRB)
+        self.rat_percentual = _q(getattr(self.s, "rat_percentual", 0) or 0)
+        self.fap_percentual = _q(getattr(self.s, "fap_percentual", 1) or 1)
+        self.terceiros_percentual = _q(getattr(self.s, "terceiros_percentual", 0) or 0)
+        self.usa_cprb = bool(getattr(self.s, "usa_cprb", False))
+        self.cprb_percentual = _q(getattr(self.s, "cprb_percentual", 0) or 0)
+
+        # Percentuais de presunção informados pelo usuário
+        self.pres_irpj_merc = _q(getattr(self.s, "presumido_irpj_merc", 0) or 0)
+        self.pres_csll_merc = _q(getattr(self.s, "presumido_csll_merc", 0) or 0)
+        self.pres_irpj_serv = _q(getattr(self.s, "presumido_irpj_serv", 0) or 0)
+        self.pres_csll_serv = _q(getattr(self.s, "presumido_csll_serv", 0) or 0)
 
         self.receita_domestica = _q(self.receita_total - self.receita_exportacao)
         self.fator_r = _q(0 if self.receita_total == 0 else self.folha_total / self.receita_total)
@@ -68,6 +88,9 @@ class CalculadoraTributaria:
     @transaction.atomic
     def processar(self):
         """Processa os 3 regimes e salva na tabela Resultado."""
+        if self.receita_12_meses <= 0:
+            raise ValueError("Receita dos últimos 12 meses não informada para a simulação.")
+
         Resultado.objects.filter(simulacao=self.s).delete()
 
         simples = self._calcular_simples()
@@ -95,22 +118,31 @@ class CalculadoraTributaria:
             itens["DAS"] = D("0.00")
             return TotaisRegime(itens=itens, total=_q(0))
 
-        RBT12 = self.receita_total if self.meses >= 12 else self.receita_total
+        RBT12 = self.receita_12_meses if self.receita_12_meses > 0 else self.receita_total
 
         das_merc = D("0.00")
         if self.receita_mercadorias > 0:
-            das_merc = self._simples_parcela(RBT12, self.receita_mercadorias, anexo_num=1)
+            if not self.rateios_mercadoria:
+                raise ValueError("Distribua a receita de mercadorias por anexo do Simples.")
+            total_rateio = sum(_q(item.valor) for item in self.rateios_mercadoria)
+            if abs(total_rateio - self.receita_mercadorias) > D("0.01"):
+                raise ValueError("A soma dos anexos de mercadorias difere da receita informada.")
+            for item in self.rateios_mercadoria:
+                if not item.anexo:
+                    raise ValueError("Anexo inválido na distribuição de mercadorias.")
+                das_merc += self._simples_parcela(RBT12, _q(item.valor), anexo_num=item.anexo.numero)
 
         das_serv = D("0.00")
         if self.receita_servicos > 0:
-            anexo_serv: Optional[int] = self.anexo_manual_numero
-            if not anexo_serv and cnae:
-                link = CnaeAnexo.objects.filter(cnae=cnae).first()
-                if link:
-                    anexo_serv = link.anexo.numero
-            if not anexo_serv:
-                anexo_serv = 3 if self.fator_r >= D("0.28") else 5
-            das_serv = self._simples_parcela(RBT12, self.receita_servicos, anexo_num=anexo_serv)
+            if not self.rateios_servico:
+                raise ValueError("Distribua a receita de serviços por anexo do Simples.")
+            total_rateio = sum(_q(item.valor) for item in self.rateios_servico)
+            if abs(total_rateio - self.receita_servicos) > D("0.01"):
+                raise ValueError("A soma dos anexos de serviços difere da receita informada.")
+            for item in self.rateios_servico:
+                if not item.anexo:
+                    raise ValueError("Anexo inválido na distribuição de serviços.")
+                das_serv += self._simples_parcela(RBT12, _q(item.valor), anexo_num=item.anexo.numero)
 
         total = _q(das_merc + das_serv)
         itens["DAS"] = _q(total)
@@ -137,11 +169,11 @@ class CalculadoraTributaria:
     def _calcular_presumido(self) -> TotaisRegime:
         itens = {}
 
-        # Busca fatores na tabela BasePresumido
-        fator_irpj_merc = self._fator_base_presumido("mercadorias", "fator_irpj", default="8.00")
-        fator_csll_merc = self._fator_base_presumido("mercadorias", "fator_csll", default="12.00")
-        fator_irpj_serv = self._fator_base_presumido("servicos", "fator_irpj", default="32.00")
-        fator_csll_serv = self._fator_base_presumido("servicos", "fator_csll", default="32.00")
+        # Percentuais de presunção informados pelo usuário (sem fallback automático)
+        fator_irpj_merc = self.pres_irpj_merc
+        fator_csll_merc = self.pres_csll_merc
+        fator_irpj_serv = self.pres_irpj_serv
+        fator_csll_serv = self.pres_csll_serv
 
         base_irpj = self.receita_mercadorias * (fator_irpj_merc / 100) + self.receita_servicos * (fator_irpj_serv / 100)
         base_csll = self.receita_mercadorias * (fator_csll_merc / 100) + self.receita_servicos * (fator_csll_serv / 100)
@@ -164,6 +196,7 @@ class CalculadoraTributaria:
         iss = self.receita_servicos * (self.aliq_iss / 100)
         receita_merc_dom = _q(max(D("0.00"), self.receita_mercadorias - self.receita_exportacao))
         icms = receita_merc_dom * (self.aliq_icms / 100)
+        inss = self._calcular_inss_patronal()
 
         itens.update({
             "IRPJ": _q(irpj),
@@ -172,6 +205,7 @@ class CalculadoraTributaria:
             "COFINS": _q(cofins),
             "ISS": _q(iss),
             "ICMS": _q(icms),
+            "INSS": _q(inss),
         })
         total = _q(sum(itens.values()))
         for k, v in itens.items():
@@ -190,10 +224,11 @@ class CalculadoraTributaria:
             - self.custo_mercadorias
             - self.custo_servicos
             - self.despesas_operacionais
+            - self.outras_despesas
         )
 
         # aplica adições e exclusões
-        lucro_base = lucro_base + self.adicoes_fiscais - self.exclusoes_fiscais
+        lucro_base = lucro_base + self.adicoes_fiscais + self.despesas_nao_dedutiveis - self.exclusoes_fiscais
         lucro_pos = _q(max(D("0.00"), lucro_base))
 
         # Aliquotas fixas / federais
@@ -201,7 +236,6 @@ class CalculadoraTributaria:
         csll_aliq = self._aliquota_fixa("CSLL", default="9.00")
         pis_aliq = self._aliquota_federal("PIS", "Nao Cumulativo", default="1.65")
         cofins_aliq = self._aliquota_federal("COFINS", "Nao Cumulativo", default="7.60")
-        inss_aliq = self._aliquota_fixa("INSS", default="20.00")
 
         # IRPJ
         excedente = lucro_pos - _q(20000 * self.meses)
@@ -213,12 +247,7 @@ class CalculadoraTributaria:
         cofins = self.receita_domestica * (cofins_aliq / 100) - self.creditos_cofins
 
         # INSS patronal
-        if self.desoneracao:
-            inss = D("0.00")  # CPRB em versão futura
-        else:
-            inss = self.inss_patronal_informado if self.inss_patronal_informado > 0 else _q(
-                self.folha_total * (inss_aliq / 100)
-            )
+        inss = self._calcular_inss_patronal()
 
         # ISS e ICMS
         iss = self.receita_servicos * (self.aliq_iss / 100)
@@ -242,6 +271,18 @@ class CalculadoraTributaria:
     # --------------------------
     # HELPERS
     # --------------------------
+    def _calcular_inss_patronal(self) -> Decimal:
+        # Valor informado tem precedência
+        if self.inss_patronal_informado > 0:
+            return _q(self.inss_patronal_informado)
+
+        # Alíquota única informada (INSS + RAT + Terceiros)
+        if self.aliq_inss_total > 0:
+            return _q(self.folha_total * (self.aliq_inss_total / 100))
+
+        # Sem fallback automático: se não houver parâmetro, retorna zero
+        return D("0.00")
+
     def _aliquota_fixa(self, imposto: str, *, default: str) -> Decimal:
         try:
             return _q(AliquotaFixa.objects.get(imposto=imposto).aliquota)

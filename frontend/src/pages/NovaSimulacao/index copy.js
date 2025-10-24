@@ -31,9 +31,7 @@ const extrairEmpresaDasLinhas = (linhas) => {
 
   const pickValue = (candidates, transform) => {
     for (const candidate of candidates) {
-      const key =
-        lowerCaseMap[candidate.toLowerCase()] ||
-        Object.keys(lowerCaseMap).find((k) => k.includes(candidate.toLowerCase()));
+      const key = lowerCaseMap[candidate.toLowerCase()] || Object.keys(lowerCaseMap).find((k) => k.includes(candidate.toLowerCase()));
       if (key) {
         const value = base[lowerCaseMap[key] || key];
         if (value !== undefined && value !== null && String(value).trim() !== "") {
@@ -129,7 +127,9 @@ const toDotNumber = (v) => {
   const texto = String(v).trim();
   if (!texto) return "0.00";
   const possuiVirgula = texto.includes(",");
-  const normalizado = possuiVirgula ? texto.replace(/\./g, "").replace(",", ".") : texto;
+  const normalizado = possuiVirgula
+    ? texto.replace(/\./g, "").replace(",", ".")
+    : texto;
   const numero = Number(normalizado);
   if (!Number.isFinite(numero)) return "0.00";
   return Math.abs(numero).toFixed(2);
@@ -186,7 +186,8 @@ const valorParaNumero = (valor) => {
   return Number.isFinite(numero) ? numero : 0;
 };
 
-const somarRateios = (rateios) => rateios.reduce((acc, item) => acc + valorParaNumero(item.valor), 0);
+const somarRateios = (rateios) =>
+  rateios.reduce((acc, item) => acc + valorParaNumero(item.valor), 0);
 
 const primeiroDiaDoMes = (date) => new Date(date.getFullYear(), date.getMonth(), 1);
 const ultimoDiaDoMes = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0);
@@ -241,25 +242,14 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
     const sections = tab && tab.sections ? tab.sections : [];
     return sections.includes(id);
   };
-
-  const toggleCollapse = (id) =>
-    setCollapsed((prev) => {
-      const next = Object.assign({}, prev);
-      next[id] = !prev[id];
-      return next;
-    });
-
-  useEffect(() => {
-    localStorage.setItem("ui.useTabs", useTabs ? "true" : "false");
-  }, [useTabs]);
-
-  useEffect(() => {
-    localStorage.setItem("ui.activeTab", activeTab);
-  }, [activeTab]);
-
-  useEffect(() => {
-    localStorage.setItem("ui.collapsed", JSON.stringify(collapsed));
-  }, [collapsed]);
+  const toggleCollapse = (id) => setCollapsed((prev) => {
+    const next = Object.assign({}, prev);
+    next[id] = !prev[id];
+    return next;
+  });
+  useEffect(() => { localStorage.setItem("ui.useTabs", useTabs ? "true" : "false"); }, [useTabs]);
+  useEffect(() => { localStorage.setItem("ui.activeTab", activeTab); }, [activeTab]);
+  useEffect(() => { localStorage.setItem("ui.collapsed", JSON.stringify(collapsed)); }, [collapsed]);
 
   const [form, setForm] = useState({
     empresa: "",
@@ -290,9 +280,9 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
     depreciacao: "",
     creditos_pis: "",
     creditos_cofins: "",
-    adicoes_fiscais: "",
+    adicoes_fiscais: "", // manter para ajustes diversos
     exclusoes_fiscais: "",
-    lucro_contabil: "",
+    lucro_contabil: "",  
     receita_12_meses: "",
     // Percentuais de presunção informados pelo usuário
     presumido_irpj_merc: "",
@@ -314,7 +304,8 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
   });
 
   const atualizarRateio = (tipo, chave, campo, valor) => {
-    const setter = tipo === "mercadoria" ? setRateiosMercadoria : setRateiosServico;
+    const setter =
+      tipo === "mercadoria" ? setRateiosMercadoria : setRateiosServico;
     setter((prev) =>
       prev.map((item) => {
         if (item.key !== chave) return item;
@@ -323,7 +314,9 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
         }
         if (campo === "valor") {
           const digits = (valor || "").replace(/\D/g, "");
-          const formatado = digits ? formatarValorBR((parseInt(digits, 10) / 100).toFixed(2)) : "";
+          const formatado = digits
+            ? formatarValorBR((parseInt(digits, 10) / 100).toFixed(2))
+            : "";
           return Object.assign({}, item, { valor: formatado });
         }
         return item;
@@ -332,12 +325,14 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
   };
 
   const adicionarRateio = (tipo) => {
-    const setter = tipo === "mercadoria" ? setRateiosMercadoria : setRateiosServico;
+    const setter =
+      tipo === "mercadoria" ? setRateiosMercadoria : setRateiosServico;
     setter((prev) => prev.concat([criarLinhaRateio()]));
   };
 
   const removerRateio = (tipo, chave) => {
-    const setter = tipo === "mercadoria" ? setRateiosMercadoria : setRateiosServico;
+    const setter =
+      tipo === "mercadoria" ? setRateiosMercadoria : setRateiosServico;
     setter((prev) => prev.filter((item) => item.key !== chave));
   };
 
@@ -487,19 +482,19 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
       const toNum = (v) => Number(String(v).replace(",", "."));
       const ir = toNum(irpj);
       const cs = toNum(csll);
-      const found = basesPresumidas.find((b) => Number(b.fator_irpj) === ir && Number(b.fator_csll) === cs);
+      const found = basesPresumidas.find(
+        (b) => Number(b.fator_irpj) === ir && Number(b.fator_csll) === cs
+      );
       return found ? String(found.id) : "";
     };
     setForm((prev) => ({
-      ...prev, // 👈 mantém os demais campos do form
-      base_presumido_merc_id:
-        prev.presumido_irpj_merc && prev.presumido_csll_merc
-          ? match(prev.presumido_irpj_merc, prev.presumido_csll_merc)
-          : prev.base_presumido_merc_id,
-      base_presumido_serv_id:
-        prev.presumido_irpj_serv && prev.presumido_csll_serv
-          ? match(prev.presumido_irpj_serv, prev.presumido_csll_serv)
-          : prev.base_presumido_serv_id,
+      
+      base_presumido_merc_id: prev.presumido_irpj_merc && prev.presumido_csll_merc
+        ? match(prev.presumido_irpj_merc, prev.presumido_csll_merc)
+        : prev.base_presumido_merc_id,
+      base_presumido_serv_id: prev.presumido_irpj_serv && prev.presumido_csll_serv
+        ? match(prev.presumido_irpj_serv, prev.presumido_csll_serv)
+        : prev.base_presumido_serv_id,
     }));
   }, [basesPresumidas]);
 
@@ -523,7 +518,6 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
       initialData.empresa && typeof initialData.empresa === "object" ? initialData.empresa : {};
 
     setForm((prev) => ({
-      ...prev,
       empresa: empresaId ? String(empresaId) : "",
       empresa_nome: empresaNome,
       empresa_cnpj:
@@ -593,6 +587,7 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
     setRateiosServico(rateiosServ);
   }, [initialData]);
 
+
   const abrirImportacao = () => {
     setImportErro("");
     setMensagem("");
@@ -604,12 +599,11 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
     setShowImportModal(true);
   };
 
-  const onChange = (name, value) =>
-    setForm((p) => {
-      const novo = Object.assign({}, p);
-      novo[name] = value;
-      return novo;
-    });
+  const onChange = (name, value) => setForm((p) => {
+    const novo = Object.assign({}, p);
+    novo[name] = value;
+    return novo;
+  });
 
   const handleValorChange = (name) => (event) => {
     const raw = event.target.value || "";
@@ -640,7 +634,7 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
     setSalvando(true);
     try {
       const payload = {
-        empresa_id: Number(form.empresa),
+        empresa_id: Number(form.empresa),   // 👈 alterar aqui
         regime_atual: form.regime_atual,
         receita_12_meses: toDotNumber(form.receita_12_meses),
         receita_total: toDotNumber(form.receita_total),
@@ -762,11 +756,7 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
           empresaCriada = true;
         } catch (criacaoErro) {
           const mensagem =
-            (criacaoErro &&
-              criacaoErro.response &&
-              criacaoErro.response.data &&
-              (criacaoErro.response.data.detail ||
-                (criacaoErro.response.data.cnpj && criacaoErro.response.data.cnpj[0]))) ||
+            (criacaoErro && criacaoErro.response && criacaoErro.response.data && (criacaoErro.response.data.detail || (criacaoErro.response.data.cnpj && criacaoErro.response.data.cnpj[0]))) ||
             "Não foi possível cadastrar a empresa automaticamente.";
           setImportErro(mensagem);
           return;
@@ -792,18 +782,24 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
         receita12 = await calcularReceita12Meses(importParams.empresa, importParams.dataFim);
       } catch (erroRbt) {
         console.warn("Falha ao calcular RBT12 automaticamente.", erroRbt);
-        setImportErro("Não foi possível obter a Receita dos últimos 12 meses automaticamente. Informe manualmente.");
+        setImportErro(
+          "Não foi possível obter a Receita dos últimos 12 meses automaticamente. Informe manualmente."
+        );
       }
 
       const valorMercadorias = consolidado.receita_mercadorias || 0;
       const valorServicos = consolidado.receita_servicos || 0;
 
       setRateiosMercadoria(
-        valorMercadorias && valorMercadorias > 0 ? [criarLinhaRateio({ valor: valorMercadorias })] : []
+        valorMercadorias && valorMercadorias > 0
+          ? [criarLinhaRateio({ valor: valorMercadorias })]
+          : []
       );
 
       setRateiosServico(
-        valorServicos && valorServicos > 0 ? [criarLinhaRateio({ valor: valorServicos })] : []
+        valorServicos && valorServicos > 0
+          ? [criarLinhaRateio({ valor: valorServicos })]
+          : []
       );
 
       setForm((prev) => {
@@ -822,9 +818,7 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
         atualizado.empresa_cnae = (empresaRegistrada && empresaRegistrada.cnae_principal) || prev.empresa_cnae;
         atualizado.empresa_municipio = (empresaRegistrada && empresaRegistrada.municipio) || prev.empresa_municipio;
         const regimePreferido =
-          (empresaRegistrada &&
-          empresaRegistrada.regime_tributario &&
-          empresaRegistrada.regime_tributario !== "Outras"
+          (empresaRegistrada && empresaRegistrada.regime_tributario && empresaRegistrada.regime_tributario !== "Outras"
             ? empresaRegistrada.regime_tributario
             : (empresaRegistrada && empresaRegistrada.planilha_regime));
         if (regimePreferido) {
@@ -858,781 +852,764 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
     }
   };
 
-  return (
-    <div className="nova-container">
-      {mensagem && <div className="alert-sucesso" style={{ marginBottom: 12 }}>{mensagem}</div>}
-      {erro && <div className="alert-erro" style={{ marginBottom: 12 }}>{erro}</div>}
+return (
+  <div className="nova-container">
+    {mensagem && <div className="alert-sucesso" style={{ marginBottom: 12 }}>{mensagem}</div>}
+    {erro && <div className="alert-erro" style={{ marginBottom: 12 }}>{erro}</div>}
 
-      <div className="nova-topbar">
-        <div className="left">
-          {allowImport && (
-            <button className="btn btn-outline" onClick={handleImportarSCI} type="button">
-              IMPORTAR SCI
-            </button>
-          )}
-          <button
-            className="btn btn-outline"
-            style={{ marginLeft: 8 }}
-            onClick={() => setUseTabs((v) => !v)}
-            type="button"
-            title="Alternar modo de abas"
-          >
-            {useTabs ? "ABAS: ON" : "ABAS: OFF"}
+    <div className="nova-topbar">
+      <div className="left">
+        {allowImport && (
+          <button className="btn btn-outline" onClick={handleImportarSCI} type="button">
+            IMPORTAR SCI
           </button>
-        </div>
-        <div className="right">
-          <button
-            className="btn btn-primary"
-            onClick={handleProcessar}
-            disabled={salvando}
-            type="button"
-          >
-            {salvando ? "Processando..." : "Processar simulação"}
-          </button>
-        </div>
+        )}
+        <button
+          className="btn btn-outline"
+          style={{ marginLeft: 8 }}
+          onClick={() => setUseTabs((v) => !v)}
+          type="button"
+          title="Alternar modo de abas"
+        >
+          {useTabs ? "ABAS: ON" : "ABAS: OFF"}
+        </button>
       </div>
-
-    {useTabs ? (
-      <div className="tabs-nav">
-        {tabs.map(function (t) {
-          return (
-            <button
-              key={t.key}
-              type="button"
-              className={"tab " + (activeTab === t.key ? "active" : "")}
-              onClick={function () {
-                setActiveTab(t.key);
-              }}
-            >
-              {t.label}
-            </button>
-          );
-        })}
+      <div className="right">
+        <button
+          className="btn btn-primary"
+          onClick={handleProcessar}
+          disabled={salvando}
+          type="button"
+        >
+          {salvando ? "Processando..." : "Processar simulação"}
+        </button>
       </div>
-    ) : null}
-
-      {/* Identificação */}
-      {showSection("identificacao") && (
-        <div className={"card collapsible " + (collapsed["identificacao"] ? "collapsed" : "")} id="identificacao">
-          <div className="card-header" onClick={() => toggleCollapse("identificacao")}>
-            <h4>Identificação</h4>
-            <span className="card-chevron">{collapsed["identificacao"] ? "⯈" : "⯆"}</span>
-          </div>
-          <div className="card-body">
-            <div className="grid-empresa">
-              <div>
-                <label>Empresa</label>
-                <div className="empresa-selecao">
-                  <input
-                    type="text"
-                    readOnly
-                    value={form.empresa_nome}
-                    placeholder="Nenhuma empresa selecionada"
-                  />
-                  <button type="button" onClick={() => setShowEmpresaModal(true)}>🔍</button>
-                </div>
-              </div>
-              <div>
-                <label>CNPJ</label>
-                <input
-                  type="text"
-                  readOnly
-                  value={form.empresa_cnpj}
-                  placeholder="CNPJ não selecionado"
-                />
-              </div>
-            </div>
-
-            <div className="grid-identificacao">
-              <div>
-                <label>Regime atual</label>
-                <select
-                  value={form.regime_atual}
-                  onChange={(e) => onChange("regime_atual", e.target.value)}
-                >
-                  <option value="Simples">Simples Nacional</option>
-                  <option value="Presumido">Lucro Presumido</option>
-                  <option value="Real">Lucro Real</option>
-                  <option value="Outras">Outras</option>
-                </select>
-              </div>
-              <div>
-                <label>ISS (%)</label>
-                <input
-                  inputMode="decimal"
-                  value={form.aliquota_iss}
-                  onChange={(e) => onChange("aliquota_iss", e.target.value)}
-                />
-              </div>
-              <div>
-                <label>ICMS (%)</label>
-                <input
-                  inputMode="decimal"
-                  value={form.aliquota_icms}
-                  onChange={(e) => onChange("aliquota_icms", e.target.value)}
-                />
-              </div>
-              <div>
-                <label>CNAE</label>
-                <input
-                  type="text"
-                  readOnly
-                  value={form.empresa_cnae}
-                  placeholder="CNAE não selecionado"
-                />
-              </div>
-              <div>
-                <label>Município</label>
-                <input
-                  type="text"
-                  readOnly
-                  value={form.empresa_municipio}
-                  placeholder="Município não informado"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Receitas */}
-      {showSection("receitas") && (
-        <div className={"card collapsible " + (collapsed["receitas"] ? "collapsed" : "")} id="receitas">
-          <div className="card-header" onClick={() => toggleCollapse("receitas")}>
-            <h4>Receitas</h4>
-            <span className="card-chevron">{collapsed["receitas"] ? "⯈" : "⯆"}</span>
-          </div>
-          <div className="card-body">
-            <div className="grid-receitas">
-              <div>
-                <label>Receita Total</label>
-                <input
-                  inputMode="decimal"
-                  value={form.receita_total}
-                  onChange={handleValorChange("receita_total")}
-                />
-              </div>
-              <div>
-                <label>Receita 12 meses</label>
-                <input
-                  inputMode="decimal"
-                  value={form.receita_12_meses}
-                  onChange={handleValorChange("receita_12_meses")}
-                />
-              </div>
-              <div>
-                <label>Receita Mercadorias</label>
-                <input
-                  inputMode="decimal"
-                  value={form.receita_mercadorias}
-                  onChange={handleValorChange("receita_mercadorias")}
-                />
-              </div>
-              <div>
-                <label>Receita Serviços</label>
-                <input
-                  inputMode="decimal"
-                  value={form.receita_servicos}
-                  onChange={handleValorChange("receita_servicos")}
-                />
-              </div>
-              <div>
-                <label>Receita Exportação</label>
-                <input
-                  inputMode="decimal"
-                  value={form.receita_exportacao}
-                  onChange={handleValorChange("receita_exportacao")}
-                />
-              </div>
-              <div>
-                <label>Deduções de Receita</label>
-                <input
-                  inputMode="decimal"
-                  value={form.receita_deducoes}
-                  onChange={handleValorChange("receita_deducoes")}
-                />
-              </div>
-              <div>
-                <label>Outras Receitas</label>
-                <input
-                  inputMode="decimal"
-                  value={form.outras_receitas}
-                  onChange={handleValorChange("outras_receitas")}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Percentuais Presumidos (informados pelo usuário) */}
-      {showSection("presumido") && (
-        <div className={"card collapsible " + (collapsed["presumido"] ? "collapsed" : "")} id="presumido">
-          <div className="card-header" onClick={() => toggleCollapse("presumido")}>
-            <h4>Percentuais Para Base Presumidos (IRPJ/CSLL)</h4>
-            <span className="card-chevron">{collapsed["presumido"] ? "⯈" : "⯆"}</span>
-          </div>
-          <div className="card-body">
-            <div className="grid-impostos">
-              <div>
-                <label>Base Presumido - Mercadorias</label>
-                <select
-                  value={form.base_presumido_merc_id}
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    onChange("base_presumido_merc_id", id);
-                    const sel = basesPresumidas.find((b) => String(b.id) === String(id));
-                    if (sel) {
-                      onChange("presumido_irpj_merc", String(sel.fator_irpj));
-                      onChange("presumido_csll_merc", String(sel.fator_csll));
-                    }
-                  }}
-                >
-                  <option value="">Selecione...</option>
-                  {basesPresumidas.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.atividade} (IRPJ {b.fator_irpj}% | CSLL {b.fator_csll}%)
-                    </option>
-                  ))}
-                </select>
-                <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                  <input readOnly value={form.presumido_irpj_merc} />
-                  <input readOnly value={form.presumido_csll_merc} />
-                </div>
-              </div>
-              <div>
-                <label>Base Presumido - Serviços</label>
-                <select
-                  value={form.base_presumido_serv_id}
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    onChange("base_presumido_serv_id", id);
-                    const sel = basesPresumidas.find((b) => String(b.id) === String(id));
-                    if (sel) {
-                      onChange("presumido_irpj_serv", String(sel.fator_irpj));
-                      onChange("presumido_csll_serv", String(sel.fator_csll));
-                    }
-                  }}
-                >
-                  <option value="">Selecione...</option>
-                  {basesPresumidas.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.atividade} (IRPJ {b.fator_irpj}% | CSLL {b.fator_csll}%)
-                    </option>
-                  ))}
-                </select>
-                <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                  <input readOnly value={form.presumido_irpj_serv} />
-                  <input readOnly value={form.presumido_csll_serv} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ISS / ICMS */}
-      {showSection("issicms") && (
-        <div className={"card collapsible " + (collapsed["issicms"] ? "collapsed" : "")} id="issicms">
-          <div className="card-header" onClick={() => toggleCollapse("issicms")}>
-            <h4>Impostos Municipais/Estaduais</h4>
-            <span className="card-chevron">{collapsed["issicms"] ? "⯈" : "⯆"}</span>
-          </div>
-          <div className="card-body">
-            <div className="grid-impostos">
-              <div>
-                <label>ISS (%)</label>
-                <input
-                  inputMode="decimal"
-                  value={form.aliquota_iss}
-                  onChange={(e) => onChange("aliquota_iss", e.target.value)}
-                />
-              </div>
-              <div>
-                <label>ICMS (%)</label>
-                <input
-                  inputMode="decimal"
-                  value={form.aliquota_icms}
-                  onChange={(e) => onChange("aliquota_icms", e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Rateio Mercadorias */}
-      {showSection("rateio-merc") && (
-        <div className={"card collapsible " + (collapsed["rateio-merc"] ? "collapsed" : "")} id="rateio-merc">
-          <div className="card-header" onClick={() => toggleCollapse("rateio-merc")}>
-            <h4>Rateio Mercadorias</h4>
-            <span className="card-chevron">{collapsed["rateio-merc"] ? "⯈" : "⯆"}</span>
-          </div>
-          {!collapsed["rateio-merc"] && (
-            <div className="card-header-inline" style={{ marginTop: -6 }}>
-              <span className="card-subtitle">
-                Distribua {formatarValorBR(valorParaNumero(form.receita_mercadorias || 0))} entre os anexos
-              </span>
-            </div>
-          )}
-          <div className="rateio-wrapper">
-            <table className="rateio-table">
-              <thead>
-                <tr>
-                  <th>Anexo</th>
-                  <th>Valor</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {rateiosMercadoria.length ? (
-                  rateiosMercadoria.map((item) => (
-                    <tr key={item.key}>
-                      <td>
-                        <select
-                          value={item.anexo}
-                          onChange={(e) => atualizarRateio("mercadoria", item.key, "anexo", e.target.value)}
-                        >
-                          <option value="">Selecione...</option>
-                          {anexos.map((anexo) => (
-                            <option key={anexo.id} value={anexo.id}>
-                              {"Anexo " + anexo.numero + (anexo.atividade ? " - " + anexo.atividade : "")}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <input
-                          value={item.valor}
-                          inputMode="decimal"
-                          onChange={(e) => atualizarRateio("mercadoria", item.key, "valor", e.target.value)}
-                        />
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn btn-small btn-danger"
-                          onClick={() => removerRateio("mercadoria", item.key)}
-                        >
-                          Remover
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td className="rateio-empty" colSpan={3}>Nenhum rateio cadastrado</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-            <div className="rateio-summary">
-              Total distribuído: <strong>{formatarValorBR(somarRateios(rateiosMercadoria))}</strong> | Necessário:{" "}
-              <strong>{form.receita_mercadorias || "0,00"}</strong>
-            </div>
-            <button type="button" className="btn btn-small" onClick={() => adicionarRateio("mercadoria")}>
-              + Adicionar linha
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Rateio Serviços */}
-      {showSection("rateio-serv") && (
-        <div className={"card collapsible " + (collapsed["rateio-serv"] ? "collapsed" : "")} id="rateio-serv">
-          <div className="card-header" onClick={() => toggleCollapse("rateio-serv")}>
-            <h4>Rateio Serviços</h4>
-            <span className="card-chevron">{collapsed["rateio-serv"] ? "⯈" : "⯆"}</span>
-          </div>
-          {!collapsed["rateio-serv"] && (
-            <div className="card-header-inline" style={{ marginTop: -6 }}>
-              <span className="card-subtitle">
-                Distribua {formatarValorBR(valorParaNumero(form.receita_servicos || 0))} entre os anexos
-              </span>
-            </div>
-          )}
-          <div className="rateio-wrapper">
-            <table className="rateio-table">
-              <thead>
-                <tr>
-                  <th>Anexo</th>
-                  <th>Valor</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {rateiosServico.length ? (
-                  rateiosServico.map((item) => (
-                    <tr key={item.key}>
-                      <td>
-                        <select
-                          value={item.anexo}
-                          onChange={(e) => atualizarRateio("servico", item.key, "anexo", e.target.value)}
-                        >
-                          <option value="">Selecione...</option>
-                          {anexos.map((anexo) => (
-                            <option key={anexo.id} value={anexo.id}>
-                              {"Anexo " + anexo.numero + (anexo.atividade ? " - " + anexo.atividade : "")}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <input
-                          value={item.valor}
-                          inputMode="decimal"
-                          onChange={(e) => atualizarRateio("servico", item.key, "valor", e.target.value)}
-                        />
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn btn-small btn-danger"
-                          onClick={() => removerRateio("servico", item.key)}
-                        >
-                          Remover
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td className="rateio-empty" colSpan={3}>Nenhum rateio cadastrado</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-            <div className="rateio-summary">
-              Total distribuído: <strong>{formatarValorBR(somarRateios(rateiosServico))}</strong> | Necessário:{" "}
-              <strong>{form.receita_servicos || "0,00"}</strong>
-            </div>
-            <button type="button" className="btn btn-small" onClick={() => adicionarRateio("servico")}>
-              + Adicionar linha
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Custos & Créditos */}
-      {showSection("custos") && (
-        <div className={"card collapsible " + (collapsed["custos"] ? "collapsed" : "")} id="custos">
-          <div className="card-header" onClick={() => toggleCollapse("custos")}>
-            <h4>Custos & Créditos</h4>
-            <span className="card-chevron">{collapsed["custos"] ? "⯈" : "⯆"}</span>
-          </div>
-          <div className="card-body">
-            <div className="grid-custos">
-              <div>
-                <label>Custo Mercadorias</label>
-                <input
-                  inputMode="decimal"
-                  value={form.custo_mercadorias}
-                  onChange={handleValorChange("custo_mercadorias")}
-                />
-              </div>
-              <div>
-                <label>Custo Serviços</label>
-                <input
-                  inputMode="decimal"
-                  value={form.custo_servicos}
-                  onChange={handleValorChange("custo_servicos")}
-                />
-              </div>
-              <div>
-                <label>Despesas Operacionais</label>
-                <input
-                  inputMode="decimal"
-                  value={form.despesas_operacionais}
-                  onChange={handleValorChange("despesas_operacionais")}
-                />
-              </div>
-              <div>
-                <label>Créditos PIS</label>
-                <input
-                  inputMode="decimal"
-                  value={form.creditos_pis}
-                  onChange={handleValorChange("creditos_pis")}
-                />
-              </div>
-              <div>
-                <label>Créditos COFINS</label>
-                <input
-                  inputMode="decimal"
-                  value={form.creditos_cofins}
-                  onChange={handleValorChange("creditos_cofins")}
-                />
-              </div>
-              <div>
-                <label>Adições Fiscais</label>
-                <input
-                  inputMode="decimal"
-                  value={form.adicoes_fiscais}
-                  onChange={handleValorChange("adicoes_fiscais")}
-                />
-              </div>
-              <div>
-                <label>Exclusões Fiscais</label>
-                <input
-                  inputMode="decimal"
-                  value={form.exclusoes_fiscais}
-                  onChange={handleValorChange("exclusoes_fiscais")}
-                />
-              </div>
-              <div>
-                <label>Lucro Contábil (opcional)</label>
-                <input
-                  inputMode="decimal"
-                  value={form.lucro_contabil}
-                  onChange={handleValorChange("lucro_contabil")}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Folha e Encargos */}
-      {showSection("folha") && (
-        <div className={"card collapsible " + (collapsed["folha"] ? "collapsed" : "")} id="folha">
-          <div className="card-header" onClick={() => toggleCollapse("folha")}>
-            <h4>Folha e Encargos</h4>
-            <span className="card-chevron">{collapsed["folha"] ? "⯈" : "⯆"}</span>
-          </div>
-          <div className="card-body">
-            <div className="grid-folha">
-              <div>
-                <label>Folha Total</label>
-                <input
-                  inputMode="decimal"
-                  value={form.folha_total}
-                  onChange={handleValorChange("folha_total")}
-                />
-              </div>
-              <div>
-                <label>INSS Patronal (valor informado)</label>
-                <input
-                  inputMode="decimal"
-                  value={form.inss_patronal}
-                  onChange={handleValorChange("inss_patronal")}
-                />
-              </div>
-              <div>
-                <label>INSS total (%)</label>
-                <input
-                  inputMode="decimal"
-                  value={form.aliquota_inss_total}
-                  onChange={(e) => onChange("aliquota_inss_total", e.target.value)}
-                />
-              </div>
-              <div className="checkbox-row">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={form.desoneracao_folha}
-                    onChange={(e) => onChange("desoneracao_folha", e.target.checked)}
-                  />
-                  Desoneração da folha (informativa)
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Despesas e Ajustes adicionais */}
-      {showSection("despesas") && (
-        <div className={"card collapsible " + (collapsed["despesas"] ? "collapsed" : "")} id="despesas">
-          <div className="card-header" onClick={() => toggleCollapse("despesas")}>
-            <h4>Despesas e Ajustes</h4>
-            <span className="card-chevron">{collapsed["despesas"] ? "⯈" : "⯆"}</span>
-          </div>
-          <div className="card-body">
-            <div className="grid-custos">
-              <div>
-                <label>Outras Despesas</label>
-                <input
-                  inputMode="decimal"
-                  value={form.outras_despesas}
-                  onChange={handleValorChange("outras_despesas")}
-                />
-              </div>
-              <div>
-                <label>Pró-labore</label>
-                <input
-                  inputMode="decimal"
-                  value={form.pro_labore}
-                  onChange={handleValorChange("pro_labore")}
-                />
-              </div>
-              <div>
-                <label>Despesas não dedutíveis (adições)</label>
-                <input
-                  inputMode="decimal"
-                  value={form.despesas_nao_dedutiveis}
-                  onChange={handleValorChange("despesas_nao_dedutiveis")}
-                />
-              </div>
-              <div>
-                <label>Investimentos</label>
-                <input
-                  inputMode="decimal"
-                  value={form.investimentos}
-                  onChange={handleValorChange("investimentos")}
-                />
-              </div>
-              <div>
-                <label>Depreciação</label>
-                <input
-                  inputMode="decimal"
-                  value={form.depreciacao}
-                  onChange={handleValorChange("depreciacao")}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {resultado && showSection("resultado") && (
-        <div className="card" style={{ marginTop: 16 }}>
-          <h4>Resultado</h4>
-          <div className="resumo-totais">
-            <div className="pill">
-              <span>Simples</span>
-              <strong>{moeda((resultado && resultado.simples && resultado.simples.TOTAL) || 0)}</strong>
-            </div>
-            <div className="pill">
-              <span>Presumido</span>
-              <strong>{moeda((resultado && resultado.presumido && resultado.presumido.TOTAL) || 0)}</strong>
-            </div>
-            <div className="pill">
-              <span>Real</span>
-              <strong>{moeda((resultado && resultado.real && resultado.real.TOTAL) || 0)}</strong>
-            </div>
-          </div>
-          <div className="grid-3">
-            <TabelaRegime titulo="Simples" data={resultado.simples} />
-            <TabelaRegime titulo="Presumido" data={resultado.presumido} />
-            <TabelaRegime titulo="Real" data={resultado.real} />
-          </div>
-        </div>
-      )}
-
-      <Modal
-        show={showImportModal}
-        onClose={() => {
-          if (!importLoading) setShowImportModal(false);
-        }}
-        title="Importar dados do SCI"
-        size="sm"
-      >
-        <form className="import-sci-form" onSubmit={handleSubmitImportSci}>
-          {importErro && <div className="alert-erro">{importErro}</div>}
-
-          <div className="form-row">
-            <label htmlFor="import-empresa">Empresa</label>
-            <input
-              id="import-empresa"
-              type="number"
-              value={importParams.empresa}
-              onChange={(e) =>
-                setImportParams((prev) => {
-                  const novo = Object.assign({}, prev);
-                  novo.empresa = e.target.value;
-                  return novo;
-                })
-              }
-              required
-            />
-          </div>
-
-          <div className="form-row">
-            <label htmlFor="import-inicio">Data início</label>
-            <input
-              id="import-inicio"
-              type="date"
-              value={importParams.dataInicio}
-              onChange={(e) =>
-                setImportParams((prev) => {
-                  const novo = Object.assign({}, prev);
-                  novo.dataInicio = e.target.value;
-                  return novo;
-                })
-              }
-              required
-            />
-          </div>
-
-          <div className="form-row">
-            <label htmlFor="import-fim">Data fim</label>
-            <input
-              id="import-fim"
-              type="date"
-              value={importParams.dataFim}
-              onChange={(e) =>
-                setImportParams((prev) => {
-                  const novo = Object.assign({}, prev);
-                  novo.dataFim = e.target.value;
-                  return novo;
-                })
-              }
-              required
-            />
-          </div>
-
-          <div className="import-actions">
-            <button
-              type="button"
-              className="btn btn-outline"
-              onClick={() => {
-                if (!importLoading) setShowImportModal(false);
-              }}
-            >
-              Cancelar
-            </button>
-            <button className="btn btn-primary" type="submit" disabled={importLoading}>
-              {importLoading ? "Importando..." : "Importar"}
-            </button>
-          </div>
-
-          <small className="import-hint">
-            Ajuste o mapeamento em <code>balanceteMap.js</code> para controlar o de-para entre contas e parâmetros.
-          </small>
-        </form>
-      </Modal>
-
-      {/* Modal de Pesquisa de Empresas */}
-      <ModalPesquisarEmpresa
-        open={showEmpresaModal}
-        onClose={() => setShowEmpresaModal(false)}
-        onSelect={(empresa) => {
-          const regimePreferido =
-            (empresa.regime_tributario && empresa.regime_tributario !== "Outras"
-              ? empresa.regime_tributario
-              : empresa.planilha_regime);
-          setForm((prev) => {
-            const atualizado = Object.assign({}, prev);
-            atualizado.empresa = String(empresa.id);
-            atualizado.empresa_nome = empresa.razao_social || "";
-            atualizado.empresa_cnpj = empresa.cnpj || "";
-            atualizado.empresa_cnae = empresa.cnae_principal || "";
-            atualizado.empresa_municipio = empresa.municipio || "";
-            atualizado.regime_atual = regimePreferido || prev.regime_atual;
-            return atualizado;
-          });
-          setRateiosMercadoria([]);
-          setRateiosServico([]);
-          setShowEmpresaModal(false);
-        }}
-      />
     </div>
-  );
+
+    {/* Abas ocultadas temporariamente para estabilizar o build */}
+
+    {/* Identificação */}
+    {showSection("identificacao") && (
+    <div className={"card collapsible " + (collapsed["identificacao"] ? "collapsed" : "")} id="identificacao">
+      <div className="card-header" onClick={() => toggleCollapse("identificacao")}> 
+        <h4>Identificação</h4>
+        <span className="card-chevron">{collapsed["identificacao"] ? "⯈" : "⯆"}</span>
+      </div>
+      <div className="card-body">
+
+      <div className="grid-empresa">
+        <div>
+          <label>Empresa</label>
+          <div className="empresa-selecao">
+            <input
+              type="text"
+              readOnly
+              value={form.empresa_nome}
+              placeholder="Nenhuma empresa selecionada"
+            />
+            <button type="button" onClick={() => setShowEmpresaModal(true)}>🔍</button>
+          </div>
+        </div>
+        <div>
+          <label>CNPJ</label>
+          <input
+            type="text"
+            readOnly
+            value={form.empresa_cnpj}
+            placeholder="CNPJ não selecionado"
+          />
+        </div>
+      </div>
+
+      <div className="grid-identificacao">
+        <div>
+          <label>Regime atual</label>
+          <select
+            value={form.regime_atual}
+            onChange={(e) => onChange("regime_atual", e.target.value)}
+          >
+            <option value="Simples">Simples Nacional</option>
+            <option value="Presumido">Lucro Presumido</option>
+            <option value="Real">Lucro Real</option>
+            <option value="Outras">Outras</option>
+          </select>
+        </div>
+        <div>
+          <label>ISS (%)</label>
+          <input
+            inputMode="decimal"
+            value={form.aliquota_iss}
+            onChange={(e) => onChange("aliquota_iss", e.target.value)}
+          />
+        </div>
+        <div>
+          <label>ICMS (%)</label>
+          <input
+            inputMode="decimal"
+            value={form.aliquota_icms}
+            onChange={(e) => onChange("aliquota_icms", e.target.value)}
+          />
+        </div>
+        <div>
+          <label>CNAE</label>
+          <input
+            type="text"
+            readOnly
+            value={form.empresa_cnae}
+            placeholder="CNAE não selecionado"
+          />
+        </div>
+        <div>
+          <label>Município</label>
+          <input
+            type="text"
+            readOnly
+            value={form.empresa_municipio}
+            placeholder="Município não informado"
+          />
+        </div>
+      </div>
+    </div>
+    )}
+
+    {/* Receitas */}
+    {showSection("receitas") && (
+    <div className={"card collapsible " + (collapsed["receitas"] ? "collapsed" : "")} id="receitas">
+      <div className="card-header" onClick={() => toggleCollapse("receitas")}>
+        <h4>Receitas</h4>
+        <span className="card-chevron">{collapsed["receitas"] ? "⯈" : "⯆"}</span>
+      </div>
+      <div className="card-body">
+      <div className="grid-receitas">
+        <div>
+          <label>Receita Total</label>
+          <input
+            inputMode="decimal"
+            value={form.receita_total}
+            onChange={handleValorChange("receita_total")}
+          />
+        </div>
+        <div>
+          <label>Receita 12 meses</label>
+          <input
+            inputMode="decimal"
+            value={form.receita_12_meses}
+            onChange={handleValorChange("receita_12_meses")}
+          />
+        </div>
+        <div>
+          <label>Receita Mercadorias</label>
+          <input
+            inputMode="decimal"
+            value={form.receita_mercadorias}
+            onChange={handleValorChange("receita_mercadorias")}
+          />
+        </div>
+        <div>
+          <label>Receita Serviços</label>
+          <input
+            inputMode="decimal"
+            value={form.receita_servicos}
+            onChange={handleValorChange("receita_servicos")}
+          />
+        </div>
+        <div>
+          <label>Receita Exportação</label>
+          <input
+            inputMode="decimal"
+            value={form.receita_exportacao}
+            onChange={handleValorChange("receita_exportacao")}
+          />
+        </div>
+        <div>
+          <label>Deduções de Receita</label>
+          <input
+            inputMode="decimal"
+            value={form.receita_deducoes}
+            onChange={handleValorChange("receita_deducoes")}
+          />
+        </div>
+        <div>
+          <label>Outras Receitas</label>
+          <input
+            inputMode="decimal"
+            value={form.outras_receitas}
+            onChange={handleValorChange("outras_receitas")}
+          />
+        </div>
+      </div>
+      </div>
+    </div>
+    )}
+
+    {/* Percentuais Presumidos (informados pelo usuário) */}
+    {showSection("presumido") && (
+    <div className={"card collapsible " + (collapsed["presumido"] ? "collapsed" : "")} id="presumido">
+      <div className="card-header" onClick={() => toggleCollapse("presumido")}>
+        <h4>Percentuais Presumidos (IRPJ/CSLL)</h4>
+        <span className="card-chevron">{collapsed["presumido"] ? "⯈" : "⯆"}</span>
+      </div>
+      <div className="card-body">
+      <div className="grid-impostos">
+        <div>
+          <label>Base Presumido - Mercadorias</label>
+          <select
+            value={form.base_presumido_merc_id}
+            onChange={(e) => {
+              const id = e.target.value;
+              onChange("base_presumido_merc_id", id);
+              const sel = basesPresumidas.find((b) => String(b.id) === String(id));
+              if (sel) {
+                onChange("presumido_irpj_merc", String(sel.fator_irpj));
+                onChange("presumido_csll_merc", String(sel.fator_csll));
+              }
+            }}
+          >
+            <option value="">Selecione...</option>
+            {basesPresumidas.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.atividade} (IRPJ {b.fator_irpj}% | CSLL {b.fator_csll}%)
+              </option>
+            ))}
+          </select>
+          <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+            <input readOnly value={form.presumido_irpj_merc} />
+            <input readOnly value={form.presumido_csll_merc} />
+          </div>
+        </div>
+        <div>
+          <label>Base Presumido - Serviços</label>
+          <select
+            value={form.base_presumido_serv_id}
+            onChange={(e) => {
+              const id = e.target.value;
+              onChange("base_presumido_serv_id", id);
+              const sel = basesPresumidas.find((b) => String(b.id) === String(id));
+              if (sel) {
+                onChange("presumido_irpj_serv", String(sel.fator_irpj));
+                onChange("presumido_csll_serv", String(sel.fator_csll));
+              }
+            }}
+          >
+            <option value="">Selecione...</option>
+            {basesPresumidas.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.atividade} (IRPJ {b.fator_irpj}% | CSLL {b.fator_csll}%)
+              </option>
+            ))}
+          </select>
+          <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+            <input readOnly value={form.presumido_irpj_serv} />
+            <input readOnly value={form.presumido_csll_serv} />
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+    )}
+
+    {/* ISS / ICMS */}
+    {showSection("issicms") && (
+    <div className={"card collapsible " + (collapsed["issicms"] ? "collapsed" : "")} id="issicms">
+      <div className="card-header" onClick={() => toggleCollapse("issicms")}>
+        <h4>Impostos Municipais/Estaduais</h4>
+        <span className="card-chevron">{collapsed["issicms"] ? "⯈" : "⯆"}</span>
+      </div>
+      <div className="card-body">
+      <div className="grid-impostos">
+        <div>
+          <label>ISS (%)</label>
+          <input
+            inputMode="decimal"
+            value={form.aliquota_iss}
+            onChange={(e) => onChange("aliquota_iss", e.target.value)}
+          />
+        </div>
+        <div>
+          <label>ICMS (%)</label>
+          <input
+            inputMode="decimal"
+            value={form.aliquota_icms}
+            onChange={(e) => onChange("aliquota_icms", e.target.value)}
+          />
+        </div>
+      </div>
+      </div>
+    </div>
+    )}
+
+    {/* Rateio Mercadorias */}
+    {showSection("rateio-merc") && (
+    <div className={"card collapsible " + (collapsed["rateio-merc"] ? "collapsed" : "")} id="rateio-merc">
+      <div className="card-header" onClick={() => toggleCollapse("rateio-merc")}>
+        <h4>Rateio Mercadorias</h4>
+        <span className="card-chevron">{collapsed["rateio-merc"] ? "⯈" : "⯆"}</span>
+      </div>
+      {!collapsed["rateio-merc"] && (
+      <div className="card-header-inline" style={{ marginTop: -6 }}>
+        <span className="card-subtitle">
+          Distribua {formatarValorBR(valorParaNumero(form.receita_mercadorias || 0))} entre os anexos
+        </span>
+      </div>
+      )}
+      <div className="rateio-wrapper">
+        <table className="rateio-table">
+          <thead>
+            <tr>
+              <th>Anexo</th>
+              <th>Valor</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rateiosMercadoria.length ? (
+              rateiosMercadoria.map((item) => (
+                <tr key={item.key}>
+                  <td>
+                    <select
+                      value={item.anexo}
+                      onChange={(e) =>
+                        atualizarRateio("mercadoria", item.key, "anexo", e.target.value)
+                      }
+                    >
+                      <option value="">Selecione...</option>
+                      {anexos.map((anexo) => (
+                        <option key={anexo.id} value={anexo.id}>
+                          {"Anexo " + anexo.numero + (anexo.atividade ? " - " + anexo.atividade : "")}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <input
+                      value={item.valor}
+                      inputMode="decimal"
+                      onChange={(e) =>
+                        atualizarRateio("mercadoria", item.key, "valor", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn btn-small btn-danger"
+                      onClick={() => removerRateio("mercadoria", item.key)}
+                    >
+                      Remover
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td className="rateio-empty" colSpan={3}>Nenhum rateio cadastrado</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+        <div className="rateio-summary">
+          Total distribuído: <strong>{formatarValorBR(somarRateios(rateiosMercadoria))}</strong> | Necessário: {" "}
+          <strong>{form.receita_mercadorias || "0,00"}</strong>
+        </div>
+        <button type="button" className="btn btn-small" onClick={() => adicionarRateio("mercadoria")}>
+          + Adicionar linha
+        </button>
+      </div>
+    </div>
+    )}
+
+    {/* Rateio Serviços */}
+    {showSection("rateio-serv") && (
+    <div className={"card collapsible " + (collapsed["rateio-serv"] ? "collapsed" : "")} id="rateio-serv">
+      <div className="card-header" onClick={() => toggleCollapse("rateio-serv")}>
+        <h4>Rateio Serviços</h4>
+        <span className="card-chevron">{collapsed["rateio-serv"] ? "⯈" : "⯆"}</span>
+      </div>
+      {!collapsed["rateio-serv"] && (
+      <div className="card-header-inline" style={{ marginTop: -6 }}>
+        <span className="card-subtitle">
+          Distribua {formatarValorBR(valorParaNumero(form.receita_servicos || 0))} entre os anexos
+        </span>
+      </div>
+      )}
+      <div className="rateio-wrapper">
+        <table className="rateio-table">
+          <thead>
+            <tr>
+              <th>Anexo</th>
+              <th>Valor</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rateiosServico.length ? (
+              rateiosServico.map((item) => (
+                <tr key={item.key}>
+                  <td>
+                    <select
+                      value={item.anexo}
+                      onChange={(e) =>
+                        atualizarRateio("servico", item.key, "anexo", e.target.value)
+                      }
+                    >
+                      <option value="">Selecione...</option>
+                      {anexos.map((anexo) => (
+                        <option key={anexo.id} value={anexo.id}>
+                          {"Anexo " + anexo.numero + (anexo.atividade ? " - " + anexo.atividade : "")}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <input
+                      value={item.valor}
+                      inputMode="decimal"
+                      onChange={(e) =>
+                        atualizarRateio("servico", item.key, "valor", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn btn-small btn-danger"
+                      onClick={() => removerRateio("servico", item.key)}
+                    >
+                      Remover
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td className="rateio-empty" colSpan={3}>Nenhum rateio cadastrado</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+        <div className="rateio-summary">
+          Total distribuído: <strong>{formatarValorBR(somarRateios(rateiosServico))}</strong> | Necessário: {" "}
+          <strong>{form.receita_servicos || "0,00"}</strong>
+        </div>
+        <button type="button" className="btn btn-small" onClick={() => adicionarRateio("servico")}>
+          + Adicionar linha
+        </button>
+      </div>
+    </div>
+    )}
+
+    {/* Custos & Créditos */}
+    {showSection("custos") && (
+    <div className={"card collapsible " + (collapsed["custos"] ? "collapsed" : "")} id="custos">
+      <div className="card-header" onClick={() => toggleCollapse("custos")}>
+        <h4>Custos & Créditos</h4>
+        <span className="card-chevron">{collapsed["custos"] ? "⯈" : "⯆"}</span>
+      </div>
+      <div className="card-body">
+      <div className="grid-custos">
+        <div>
+          <label>Custo Mercadorias</label>
+          <input
+            inputMode="decimal"
+            value={form.custo_mercadorias}
+            onChange={handleValorChange("custo_mercadorias")}
+          />
+        </div>
+        <div>
+          <label>Custo Serviços</label>
+          <input
+            inputMode="decimal"
+            value={form.custo_servicos}
+            onChange={handleValorChange("custo_servicos")}
+          />
+        </div>
+        <div>
+          <label>Despesas Operacionais</label>
+          <input
+            inputMode="decimal"
+            value={form.despesas_operacionais}
+            onChange={handleValorChange("despesas_operacionais")}
+          />
+        </div>
+        <div>
+          <label>Créditos PIS</label>
+          <input
+            inputMode="decimal"
+            value={form.creditos_pis}
+            onChange={handleValorChange("creditos_pis")}
+          />
+        </div>
+        <div>
+          <label>Créditos COFINS</label>
+          <input
+            inputMode="decimal"
+            value={form.creditos_cofins}
+            onChange={handleValorChange("creditos_cofins")}
+          />
+        </div>
+        <div>
+          <label>Adições Fiscais</label>
+          <input
+            inputMode="decimal"
+            value={form.adicoes_fiscais}
+            onChange={handleValorChange("adicoes_fiscais")}
+          />
+        </div>
+        <div>
+          <label>Exclusões Fiscais</label>
+          <input
+            inputMode="decimal"
+            value={form.exclusoes_fiscais}
+            onChange={handleValorChange("exclusoes_fiscais")}
+          />
+        </div>
+        <div>
+          <label>Lucro Contábil (opcional)</label>
+          <input
+            inputMode="decimal"
+            value={form.lucro_contabil}
+            onChange={handleValorChange("lucro_contabil")}
+          />
+        </div>
+      </div>
+      </div>
+    </div>
+    )}
+
+    {/* Folha e Encargos */}
+    {showSection("folha") && (
+    <div className={"card collapsible " + (collapsed["folha"] ? "collapsed" : "")} id="folha">
+      <div className="card-header" onClick={() => toggleCollapse("folha")}>
+        <h4>Folha e Encargos</h4>
+        <span className="card-chevron">{collapsed["folha"] ? "⯈" : "⯆"}</span>
+      </div>
+      <div className="card-body">
+      <div className="grid-folha">
+        <div>
+          <label>Folha Total</label>
+          <input
+            inputMode="decimal"
+            value={form.folha_total}
+            onChange={handleValorChange("folha_total")}
+          />
+        </div>
+        <div>
+          <label>INSS Patronal (valor informado)</label>
+          <input
+            inputMode="decimal"
+            value={form.inss_patronal}
+            onChange={handleValorChange("inss_patronal")}
+          />
+        </div>
+        <div>
+          <label>INSS total (%)</label>
+          <input
+            inputMode="decimal"
+            value={form.aliquota_inss_total}
+            onChange={(e) => onChange("aliquota_inss_total", e.target.value)}
+          />
+        </div>
+        <div className="checkbox-row">
+          <label>
+            <input
+              type="checkbox"
+              checked={form.desoneracao_folha}
+              onChange={(e) => onChange("desoneracao_folha", e.target.checked)}
+            />
+            Desoneração da folha (informativa)
+          </label>
+        </div>
+      </div>
+      </div>
+    </div>
+    )}
+    {/* Despesas e Ajustes adicionais */}
+    {showSection("despesas") && (
+    <div className={"card collapsible " + (collapsed["despesas"] ? "collapsed" : "")} id="despesas">
+      <div className="card-header" onClick={() => toggleCollapse("despesas")}>
+        <h4>Despesas e Ajustes</h4>
+        <span className="card-chevron">{collapsed["despesas"] ? "⯈" : "⯆"}</span>
+      </div>
+      <div className="card-body">
+      <div className="grid-custos">
+        <div>
+          <label>Outras Despesas</label>
+          <input
+            inputMode="decimal"
+            value={form.outras_despesas}
+            onChange={handleValorChange("outras_despesas")}
+          />
+        </div>
+        <div>
+          <label>Pró-labore</label>
+          <input
+            inputMode="decimal"
+            value={form.pro_labore}
+            onChange={handleValorChange("pro_labore")}
+          />
+        </div>
+        <div>
+          <label>Despesas não dedutíveis (adições)</label>
+          <input
+            inputMode="decimal"
+            value={form.despesas_nao_dedutiveis}
+            onChange={handleValorChange("despesas_nao_dedutiveis")}
+          />
+        </div>
+        <div>
+          <label>Investimentos</label>
+          <input
+            inputMode="decimal"
+            value={form.investimentos}
+            onChange={handleValorChange("investimentos")}
+          />
+        </div>
+        <div>
+          <label>Depreciação</label>
+          <input
+            inputMode="decimal"
+            value={form.depreciacao}
+            onChange={handleValorChange("depreciacao")}
+          />
+        </div>
+      </div>
+      </div>
+    </div>
+    )}
+    {resultado && showSection("resultado") && (
+      <div className="card" style={{ marginTop: 16 }}>
+        <h4>Resultado</h4>
+        <div className="resumo-totais">
+          <div className="pill"><span>Simples</span><strong>{moeda((resultado && resultado.simples && resultado.simples.TOTAL) || 0)}</strong></div>
+          <div className="pill"><span>Presumido</span><strong>{moeda((resultado && resultado.presumido && resultado.presumido.TOTAL) || 0)}</strong></div>
+          <div className="pill"><span>Real</span><strong>{moeda((resultado && resultado.real && resultado.real.TOTAL) || 0)}</strong></div>
+        </div>
+        <div className="grid-3">
+          <TabelaRegime titulo="Simples" data={resultado.simples} />
+          <TabelaRegime titulo="Presumido" data={resultado.presumido} />
+          <TabelaRegime titulo="Real" data={resultado.real} />
+        </div>
+      </div>
+    )}
+
+    <Modal
+      show={showImportModal}
+      onClose={() => {
+        if (!importLoading) setShowImportModal(false);
+      }}
+      title="Importar dados do SCI"
+      size="sm"
+    >
+      <form className="import-sci-form" onSubmit={handleSubmitImportSci}>
+        {importErro && <div className="alert-erro">{importErro}</div>}
+
+        <div className="form-row">
+          <label htmlFor="import-empresa">Empresa</label>
+          <input
+            id="import-empresa"
+            type="number"
+            value={importParams.empresa}
+            onChange={(e) =>
+              setImportParams((prev) => {
+                const novo = Object.assign({}, prev);
+                novo.empresa = e.target.value;
+                return novo;
+              })
+            }
+            required
+          />
+        </div>
+
+        <div className="form-row">
+          <label htmlFor="import-inicio">Data início</label>
+          <input
+            id="import-inicio"
+            type="date"
+            value={importParams.dataInicio}
+            onChange={(e) =>
+              setImportParams((prev) => {
+                const novo = Object.assign({}, prev);
+                novo.dataInicio = e.target.value;
+                return novo;
+              })
+            }
+            required
+          />
+        </div>
+
+        <div className="form-row">
+          <label htmlFor="import-fim">Data fim</label>
+          <input
+            id="import-fim"
+            type="date"
+            value={importParams.dataFim}
+            onChange={(e) =>
+              setImportParams((prev) => {
+                const novo = Object.assign({}, prev);
+                novo.dataFim = e.target.value;
+                return novo;
+              })
+            }
+            required
+          />
+        </div>
+
+        <div className="import-actions">
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => {
+              if (!importLoading) setShowImportModal(false);
+            }}
+          >
+            Cancelar
+          </button>
+          <button className="btn btn-primary" type="submit" disabled={importLoading}>
+            {importLoading ? "Importando..." : "Importar"}
+          </button>
+        </div>
+
+        <small className="import-hint">
+          Ajuste o mapeamento em <code>balanceteMap.js</code> para controlar o de-para entre contas e parâmetros.
+        </small>
+      </form>
+    </Modal>
+
+    {/* Modal de Pesquisa de Empresas */}
+    <ModalPesquisarEmpresa
+      open={showEmpresaModal}
+      onClose={() => setShowEmpresaModal(false)}
+      onSelect={(empresa) => {
+        const regimePreferido =
+          (empresa.regime_tributario && empresa.regime_tributario !== "Outras"
+            ? empresa.regime_tributario
+            : empresa.planilha_regime);
+        setForm((prev) => {
+          const atualizado = Object.assign({}, prev);
+          atualizado.empresa = String(empresa.id);
+          atualizado.empresa_nome = empresa.razao_social || "";
+          atualizado.empresa_cnpj = empresa.cnpj || "";
+          atualizado.empresa_cnae = empresa.cnae_principal || "";
+          atualizado.empresa_municipio = empresa.municipio || "";
+          atualizado.regime_atual = regimePreferido || prev.regime_atual;
+          return atualizado;
+        });
+        setRateiosMercadoria([]);
+        setRateiosServico([]);
+        setShowEmpresaModal(false);
+      }}
+    />
+  </div>
+);
+
+
+
 }
 
 function TabelaRegime({ titulo, data }) {
   if (!data) return null;
   const linhas = Object.entries(data).filter(([k]) => k !== "TOTAL");
-  const moedaFmt = (v) =>
+  const moeda = (v) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(+v || 0);
 
   return (
@@ -1643,13 +1620,13 @@ function TabelaRegime({ titulo, data }) {
           {linhas.map(([k, v]) => (
             <tr key={k}>
               <td>{k}</td>
-              <td style={{ textAlign: "right" }}>{moedaFmt(v)}</td>
+              <td style={{ textAlign: "right" }}>{moeda(v)}</td>
             </tr>
           ))}
           <tr>
             <td><strong>TOTAL</strong></td>
             <td style={{ textAlign: "right" }}>
-              <strong>{moedaFmt(data.TOTAL)}</strong>
+              <strong>{moeda(data.TOTAL)}</strong>
             </td>
           </tr>
         </tbody>

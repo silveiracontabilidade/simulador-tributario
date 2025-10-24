@@ -183,6 +183,50 @@ export default function ModalSimulacao({ aberto, onClose, simulacao }) {
             </tbody>
           </table>
 
+          {(simulacao.anexos_mercadoria?.length || 0) > 0 && (
+            <div className="rateio-detalhe">
+              <h4>Rateio Mercadorias</h4>
+              <table className="resultado-table" style={{ marginTop: 0 }}>
+                <thead>
+                  <tr>
+                    <th>Anexo</th>
+                    <th style={{ width: "160px" }}>Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {simulacao.anexos_mercadoria.map((item) => (
+                    <tr key={`m-${item.id || item.anexo}`}>
+                      <td>{item.anexo_label || item.anexo}</td>
+                      <td style={{ textAlign: "right" }}>{moeda(item.valor)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {(simulacao.anexos_servico?.length || 0) > 0 && (
+            <div className="rateio-detalhe">
+              <h4>Rateio Serviços</h4>
+              <table className="resultado-table" style={{ marginTop: 0 }}>
+                <thead>
+                  <tr>
+                    <th>Anexo</th>
+                    <th style={{ width: "160px" }}>Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {simulacao.anexos_servico.map((item) => (
+                    <tr key={`s-${item.id || item.anexo}`}>
+                      <td>{item.anexo_label || item.anexo}</td>
+                      <td style={{ textAlign: "right" }}>{moeda(item.valor)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           <div className="melhor-opcao">
             ✅ Melhor opção tributária:{" "}
             <strong>{melhorRegime.regime}</strong> (

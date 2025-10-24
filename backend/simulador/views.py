@@ -62,7 +62,11 @@ class EmpresaViewSet(viewsets.ModelViewSet):
 # SIMULAÇÃO
 # ------------------------
 class SimulacaoViewSet(viewsets.ModelViewSet):
-    queryset = Simulacao.objects.all().order_by("-id")
+    queryset = Simulacao.objects.all().order_by("-id").prefetch_related(
+        "anexos_mercadoria__anexo",
+        "anexos_servico__anexo",
+        "resultados",
+    )
     serializer_class = SimulacaoSerializer
 
     @action(detail=True, methods=["post"])
@@ -70,7 +74,10 @@ class SimulacaoViewSet(viewsets.ModelViewSet):
         sim = self.get_object()
         meses = int(request.query_params.get("meses", "1"))
         calc = CalculadoraTributaria(sim, meses_no_periodo=meses)
-        resultado = calc.processar()
+        try:
+            resultado = calc.processar()
+        except ValueError as exc:
+            return Response({"ok": False, "detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"ok": True, "resultado": resultado})
 
     @action(detail=True, methods=["get"])
