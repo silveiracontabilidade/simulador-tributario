@@ -74,7 +74,8 @@ const RECEITA_TOTAL_CODES = ["03", "3"];
 const RECEITA_MERCADORIAS_CODES = ["03.1.1.01", "03.1.1.05", "03.1.1.06"];
 const RECEITA_SERVICOS_CODES = ["03.1.1.03"];
 const RECEITA_EXPORTACAO_CODES = ["03.1.1.02", "03.1.1.04"];
-const RECEITA_DEDUCOES_PREFIXES = ["03.1.2"];
+const RECEITA_DEDUCOES_PREFIXES = ["03.1.2"]; // Deduções da Receita
+const DEDUCOES_SIMPLES_CODE = "03.1.2.02.008"; // Simples Nacional sobre vendas e serviços
 const RECEITA_FINANCEIRA_PREFIXES = ["03.1.3"];
 const RECEITA_OUTRAS_PREFIXES = ["03.2"];
 
@@ -134,8 +135,11 @@ export const consolidarBalancete = (dados, campoValor = "bdsaldo_atual") => {
     (acc, code) => acc + valorPorCodigo(linhas, [code]),
     0
   );
-  // Deduções: para exibição apenas; não usar como redutor da base do Simples
-  const receitaDeducoes = valorPorCodigo(linhas, RECEITA_DEDUCOES_PREFIXES);
+  // Deduções: subtrai o Simples Nacional sobre vendas/serviços (03.1.2.02.008)
+  // para não inflar o total de deduções
+  const receitaDeducoesBruta = valorPorCodigo(linhas, RECEITA_DEDUCOES_PREFIXES);
+  const simplesNasDeducoes = valorPorCodigo(linhas, [DEDUCOES_SIMPLES_CODE]);
+  const receitaDeducoes = receitaDeducoesBruta - simplesNasDeducoes;
   const receitaFinanceira = somaPorPrefixos(linhas, RECEITA_FINANCEIRA_PREFIXES, {
     somenteAnaliticas: true,
   });

@@ -163,6 +163,16 @@ class AliquotaFederalViewSet(viewsets.ModelViewSet):
     queryset = AliquotaFederal.objects.all()
     serializer_class = AliquotaFederalSerializer
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        imp = self.request.query_params.get("imposto")
+        base = self.request.query_params.get("base_calculo")
+        if imp:
+            qs = qs.filter(imposto__iexact=imp)
+        if base:
+            qs = qs.filter(base_calculo__iexact=base)
+        return qs
+
 
 class BalanceteDeParaViewSet(viewsets.ViewSet):
     """

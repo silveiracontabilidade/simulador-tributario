@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { BasePresumidoAPI } from "../../api";
+import { Pencil, Trash2, Save, X } from "lucide-react";
 
 export function BasePresumido() {
   const [dados, setDados] = useState([]);
   const [novo, setNovo] = useState({ atividade: "", fator_irpj: "", fator_csll: "" });
   const [filtro, setFiltro] = useState(""); // 🔹 estado do filtro
+  const [editId, setEditId] = useState(null);
+  const [editRow, setEditRow] = useState({ atividade: "", fator_irpj: "", fator_csll: "" });
 
   const carregar = async () => {
     const { data } = await BasePresumidoAPI.list();
@@ -20,7 +23,6 @@ export function BasePresumido() {
   };
 
   const excluir = async (id) => {
-    if (!window.confirm("Excluir base?")) return;
     await BasePresumidoAPI.delete(id);
     carregar();
   };
@@ -86,16 +88,41 @@ export function BasePresumido() {
           {/* 🔹 Lista filtrada */}
           {dadosFiltrados.map((d) => (
             <tr key={d.id}>
-              <td>{d.atividade}</td>
-              <td>{d.fator_irpj}</td>
-              <td>{d.fator_csll}</td>
               <td>
-                <button
-                  className="btn btn-small btn-danger"
-                  onClick={() => excluir(d.id)}
-                >
-                  Excluir
-                </button>
+                {editId === d.id ? (
+                  <input value={editRow.atividade} onChange={(e)=>setEditRow({ ...editRow, atividade: e.target.value })} />
+                ) : d.atividade}
+              </td>
+              <td>
+                {editId === d.id ? (
+                  <input type="number" value={editRow.fator_irpj} onChange={(e)=>setEditRow({ ...editRow, fator_irpj: e.target.value })} />
+                ) : d.fator_irpj}
+              </td>
+              <td>
+                {editId === d.id ? (
+                  <input type="number" value={editRow.fator_csll} onChange={(e)=>setEditRow({ ...editRow, fator_csll: e.target.value })} />
+                ) : d.fator_csll}
+              </td>
+              <td>
+                {editId === d.id ? (
+                  <span className="action-icons">
+                    <button className="icon-btn" title="Salvar" onClick={async ()=>{ await BasePresumidoAPI.update(d.id, editRow); setEditId(null); carregar(); }}>
+                      <Save />
+                    </button>
+                    <button className="icon-btn" title="Cancelar" onClick={()=>setEditId(null)}>
+                      <X />
+                    </button>
+                  </span>
+                ) : (
+                  <span className="action-icons">
+                    <button className="icon-btn" title="Editar" onClick={()=>{ setEditId(d.id); setEditRow({ atividade: d.atividade, fator_irpj: d.fator_irpj, fator_csll: d.fator_csll }); }}>
+                      <Pencil />
+                    </button>
+                    <button className="icon-btn danger" title="Excluir" onClick={() => excluir(d.id)}>
+                      <Trash2 />
+                    </button>
+                  </span>
+                )}
               </td>
             </tr>
           ))}

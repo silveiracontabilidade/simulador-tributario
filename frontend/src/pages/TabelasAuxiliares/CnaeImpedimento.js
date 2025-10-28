@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { CnaeImpedimentoAPI } from "../../api";
+import { Pencil, Trash2, Save, X } from "lucide-react";
 
 export function CnaeImpedimento() {
   const [dados, setDados] = useState([]);
   const [novo, setNovo] = useState({ cnae: "", descricao: "" });
   const [filtro, setFiltro] = useState(""); // 🔹 estado do filtro
+  const [editId, setEditId] = useState(null);
+  const [editRow, setEditRow] = useState({ cnae: "", descricao: "" });
 
   const carregar = async () => {
     const { data } = await CnaeImpedimentoAPI.list();
@@ -21,7 +24,6 @@ export function CnaeImpedimento() {
   };
 
   const excluir = async (id) => {
-    if (!window.confirm("Excluir este registro?")) return;
     await CnaeImpedimentoAPI.delete(id);
     carregar();
   };
@@ -82,15 +84,40 @@ export function CnaeImpedimento() {
           {/* 🔹 Lista filtrada */}
           {dadosFiltrados.map((d) => (
             <tr key={d.id}>
-              <td>{d.cnae}</td>
-              <td>{d.descricao}</td>
               <td>
-                <button
-                  className="btn btn-small btn-danger"
-                  onClick={() => excluir(d.id)}
-                >
-                  Excluir
-                </button>
+                {editId === d.id ? (
+                  <input value={editRow.cnae} onChange={(e)=>setEditRow({ ...editRow, cnae: e.target.value })} />
+                ) : (
+                  d.cnae
+                )}
+              </td>
+              <td>
+                {editId === d.id ? (
+                  <input value={editRow.descricao} onChange={(e)=>setEditRow({ ...editRow, descricao: e.target.value })} />
+                ) : (
+                  d.descricao
+                )}
+              </td>
+              <td>
+                {editId === d.id ? (
+                  <span className="action-icons">
+                    <button className="icon-btn" title="Salvar" onClick={async ()=>{ await CnaeImpedimentoAPI.update(d.id, editRow); setEditId(null); carregar(); }}>
+                      <Save />
+                    </button>
+                    <button className="icon-btn" title="Cancelar" onClick={()=>setEditId(null)}>
+                      <X />
+                    </button>
+                  </span>
+                ) : (
+                  <span className="action-icons">
+                    <button className="icon-btn" title="Editar" onClick={()=>{ setEditId(d.id); setEditRow({ cnae: d.cnae, descricao: d.descricao }); }}>
+                      <Pencil />
+                    </button>
+                    <button className="icon-btn danger" title="Excluir" onClick={() => excluir(d.id)}>
+                      <Trash2 />
+                    </button>
+                  </span>
+                )}
               </td>
             </tr>
           ))}
@@ -99,4 +126,3 @@ export function CnaeImpedimento() {
     </div>
   );
 }
-

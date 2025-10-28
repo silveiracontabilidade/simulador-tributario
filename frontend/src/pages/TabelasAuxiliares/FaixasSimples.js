@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { FaixaSimplesAPI } from "../../api";
+import { Pencil, Trash2, Save, X } from "lucide-react";
 
 export function FaixasSimples() {
   const [dados, setDados] = useState([]);
   const [novo, setNovo] = useState({ anexo: "", receita_de: "", receita_ate: "", aliquota: "", deducao: "" });
   const [filtro, setFiltro] = useState(""); // 🔹 estado do filtro
+  const [editId, setEditId] = useState(null);
+  const [editRow, setEditRow] = useState({ anexo: "", receita_de: "", receita_ate: "", aliquota: "", deducao: "" });
 
   const carregar = async () => {
     const { data } = await FaixaSimplesAPI.list();
@@ -20,7 +23,6 @@ export function FaixasSimples() {
   };
 
   const excluir = async (id) => {
-    if (!window.confirm("Excluir faixa?")) return;
     await FaixaSimplesAPI.delete(id);
     carregar();
   };
@@ -107,18 +109,31 @@ export function FaixasSimples() {
           {/* 🔹 Lista filtrada */}
           {dadosFiltrados.map((d) => (
             <tr key={d.id}>
-              <td>{d.anexo}</td>
-              <td>{d.receita_de}</td>
-              <td>{d.receita_ate}</td>
-              <td>{d.aliquota}</td>
-              <td>{d.deducao}</td>
+              <td>{editId === d.id ? <input value={editRow.anexo} onChange={(e)=>setEditRow({ ...editRow, anexo: e.target.value })} /> : d.anexo}</td>
+              <td>{editId === d.id ? <input type="number" value={editRow.receita_de} onChange={(e)=>setEditRow({ ...editRow, receita_de: e.target.value })} /> : d.receita_de}</td>
+              <td>{editId === d.id ? <input type="number" value={editRow.receita_ate} onChange={(e)=>setEditRow({ ...editRow, receita_ate: e.target.value })} /> : d.receita_ate}</td>
+              <td>{editId === d.id ? <input type="number" value={editRow.aliquota} onChange={(e)=>setEditRow({ ...editRow, aliquota: e.target.value })} /> : d.aliquota}</td>
+              <td>{editId === d.id ? <input type="number" value={editRow.deducao} onChange={(e)=>setEditRow({ ...editRow, deducao: e.target.value })} /> : d.deducao}</td>
               <td>
-                <button
-                  className="btn btn-small btn-danger"
-                  onClick={() => excluir(d.id)}
-                >
-                  Excluir
-                </button>
+                {editId === d.id ? (
+                  <span className="action-icons">
+                    <button className="icon-btn" title="Salvar" onClick={async ()=>{ await FaixaSimplesAPI.update(d.id, editRow); setEditId(null); carregar(); }}>
+                      <Save />
+                    </button>
+                    <button className="icon-btn" title="Cancelar" onClick={()=>setEditId(null)}>
+                      <X />
+                    </button>
+                  </span>
+                ) : (
+                  <span className="action-icons">
+                    <button className="icon-btn" title="Editar" onClick={()=>{ setEditId(d.id); setEditRow({ anexo: d.anexo, receita_de: d.receita_de, receita_ate: d.receita_ate, aliquota: d.aliquota, deducao: d.deducao }); }}>
+                      <Pencil />
+                    </button>
+                    <button className="icon-btn danger" title="Excluir" onClick={() => excluir(d.id)}>
+                      <Trash2 />
+                    </button>
+                  </span>
+                )}
               </td>
             </tr>
           ))}

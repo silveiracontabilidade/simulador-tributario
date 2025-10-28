@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { AnexoSimplesAPI } from "../../api";
+import { Pencil, Trash2, Save, X } from "lucide-react";
 
 export function AnexosSimples() {
   const [dados, setDados] = useState([]);
   const [novo, setNovo] = useState({ numero: "", atividade: "" });
   const [filtro, setFiltro] = useState(""); // 🔹 estado do filtro
+  const [editId, setEditId] = useState(null);
+  const [editRow, setEditRow] = useState({ numero: "", atividade: "" });
 
   const carregar = async () => {
     const { data } = await AnexoSimplesAPI.list();
@@ -20,7 +23,6 @@ export function AnexosSimples() {
   };
 
   const excluir = async (id) => {
-    if (!window.confirm("Excluir anexo?")) return;
     await AnexoSimplesAPI.delete(id);
     carregar();
   };
@@ -80,15 +82,40 @@ export function AnexosSimples() {
           {/* 🔹 Lista filtrada */}
           {dadosFiltrados.map((d) => (
             <tr key={d.id}>
-              <td>{d.numero}</td>
-              <td>{d.atividade}</td>
               <td>
-                <button
-                  className="btn btn-small btn-danger"
-                  onClick={() => excluir(d.id)}
-                >
-                  Excluir
-                </button>
+                {editId === d.id ? (
+                  <input type="number" value={editRow.numero} onChange={(e)=>setEditRow({ ...editRow, numero: e.target.value })} />
+                ) : (
+                  d.numero
+                )}
+              </td>
+              <td>
+                {editId === d.id ? (
+                  <input value={editRow.atividade} onChange={(e)=>setEditRow({ ...editRow, atividade: e.target.value })} />
+                ) : (
+                  d.atividade
+                )}
+              </td>
+              <td>
+                {editId === d.id ? (
+                  <span className="action-icons">
+                    <button className="icon-btn" title="Salvar" onClick={async ()=>{ await AnexoSimplesAPI.update(d.id, editRow); setEditId(null); carregar(); }}>
+                      <Save />
+                    </button>
+                    <button className="icon-btn" title="Cancelar" onClick={()=>setEditId(null)}>
+                      <X />
+                    </button>
+                  </span>
+                ) : (
+                  <span className="action-icons">
+                    <button className="icon-btn" title="Editar" onClick={()=>{ setEditId(d.id); setEditRow({ numero: d.numero, atividade: d.atividade }); }}>
+                      <Pencil />
+                    </button>
+                    <button className="icon-btn danger" title="Excluir" onClick={() => excluir(d.id)}>
+                      <Trash2 />
+                    </button>
+                  </span>
+                )}
               </td>
             </tr>
           ))}

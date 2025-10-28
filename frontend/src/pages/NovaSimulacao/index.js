@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { EmpresaAPI, SimulacaoAPI, BalanceteAPI, AnexoSimplesAPI, BasePresumidoAPI } from "../../api";
+import { Info } from "lucide-react";
+import { EmpresaAPI, SimulacaoAPI, BalanceteAPI, AnexoSimplesAPI, BasePresumidoAPI, AliquotaFederalAPI } from "../../api";
 import Modal from "../../components/Modal";
 import { consolidarBalancete } from "./balanceteMap";
 import "./NovaSimulacao.css";
@@ -208,15 +209,18 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
   });
   const [anexos, setAnexos] = useState([]);
   const [basesPresumidas, setBasesPresumidas] = useState([]);
+  const [aliqPisDefault, setAliqPisDefault] = useState("");
+  const [aliqCofinsDefault, setAliqCofinsDefault] = useState("");
   const [rateiosMercadoria, setRateiosMercadoria] = useState([]);
   const [rateiosServico, setRateiosServico] = useState([]);
+  const [rbt12Interval, setRbt12Interval] = useState(null);
 
   // UX: Tabs + acordeões
   const [useTabs, setUseTabs] = useState(() => {
     const v = localStorage.getItem("ui.useTabs");
     return (v === null ? "true" : v) !== "false";
   });
-  const [activeTab, setActiveTab] = useState(() => localStorage.getItem("ui.activeTab") || "geral");
+  const [activeTab, setActiveTab] = useState("geral");
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("ui.collapsed") || "{}");
@@ -227,12 +231,11 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
 
   const tabs = [
     { key: "geral", label: "Geral", sections: ["identificacao", "receitas"] },
-    { key: "tributos", label: "Tributos", sections: ["presumido", "issicms"] },
+    { key: "tributos", label: "Tributos", sections: ["presumido", "issicms", "federais"] },
     { key: "rateios", label: "Rateios", sections: ["rateio-merc", "rateio-serv"] },
     { key: "custos", label: "Custos/Créditos", sections: ["custos"] },
     { key: "folha", label: "Folha/INSS", sections: ["folha"] },
     { key: "despesas", label: "Despesas/Ajustes", sections: ["despesas"] },
-    { key: "resultado", label: "Resultado", sections: ["resultado"] },
   ];
 
   const showSection = (id) => {
@@ -261,7 +264,36 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
     localStorage.setItem("ui.collapsed", JSON.stringify(collapsed));
   }, [collapsed]);
 
-  const [form, setForm] = useState({
+  // Carrega valores padrão de PIS/COFINS (Cumulativo - Presumido)
+  useEffect(() => {
+    (async () => {
+      try {
+        const [pis, cofins] = await Promise.all([
+          AliquotaFederalAPI.list({ imposto: "PIS", base_calculo: "Cumulativo" }),
+          AliquotaFederalAPI.list({ imposto: "COFINS", base_calculo: "Cumulativo" }),
+        ]);
+        const pisAliq = (pis && pis.data && pis.data[0] && pis.data[0].aliquota) || "0.65";
+        const cofinsAliq = (cofins && cofins.data && cofins.data[0] && cofins.data[0].aliquota) || "3.00";
+        setAliqPisDefault(String(pisAliq));
+        setAliqCofinsDefault(String(cofinsAliq));
+        setForm((prev) => ({
+          ...prev,
+          aliquota_pis: prev.aliquota_pis || String(pisAliq),
+          aliquota_cofins: prev.aliquota_cofins || String(cofinsAliq),
+        }));
+      } catch (_e) {
+        setAliqPisDefault("0.65");
+        setAliqCofinsDefault("3.00");
+        setForm((prev) => ({
+          ...prev,
+          aliquota_pis: prev.aliquota_pis || "0.65",
+          aliquota_cofins: prev.aliquota_cofins || "3.00",
+        }));
+      }
+    })();
+  }, []);
+
+  const defaultForm = () => ({
     empresa: "",
     empresa_nome: "",
     empresa_cnpj: "",
@@ -280,6 +312,8 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
     aliquota_inss_total: "",
     aliquota_iss: "",
     aliquota_icms: "",
+    aliquota_pis: "",
+    aliquota_cofins: "",
     custo_mercadorias: "",
     custo_servicos: "",
     despesas_operacionais: "",
@@ -302,6 +336,7 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
     base_presumido_merc_id: "",
     base_presumido_serv_id: "",
   });
+  const [form, setForm] = useState(defaultForm());
 
   const criarLinhaRateio = (dados = {}) => ({
     key: gerarChave(),
@@ -345,15 +380,23 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
 
   const calcularReceita12Meses = async (empresaId, dataFimISO) => {
     if (!empresaId || !dataFimISO) return 0;
+    // Usa o último mês do período selecionado como mês final do RBT12
     const ref = new Date(`${dataFimISO}T00:00:00`);
-    // mês anterior ao de referência
-    const mesAnterior = new Date(ref.getFullYear(), ref.getMonth() - 1, 1);
-    // janela de 12 meses: do 1º dia de 12 meses atrás (em relação ao mês anterior)
-    const inicioPeriodo = new Date(mesAnterior.getFullYear(), mesAnterior.getMonth() - 11, 1);
-    const fimPeriodo = ultimoDiaDoMes(mesAnterior);
+    const ultimoMesPeriodo = new Date(ref.getFullYear(), ref.getMonth(), 1);
+    // Janela de 12 meses incluindo o último mês do período
+    const inicioPeriodo = new Date(ultimoMesPeriodo.getFullYear(), ultimoMesPeriodo.getMonth() - 11, 1);
+    const fimPeriodo = ultimoDiaDoMes(ultimoMesPeriodo);
     const inicioStr = formatISO(inicioPeriodo);
     const fimStr = formatISO(fimPeriodo);
-    // comp_ref é o mês anterior
+    // Armazena intervalo para tooltip (ex.: jan/2024 a dez/2024)
+    try {
+      const fmt = (iso) => {
+        const d = new Date(`${iso}T00:00:00`);
+        return d.toLocaleDateString("pt-BR", { month: "short", year: "numeric" });
+      };
+      setRbt12Interval({ inicio: inicioStr, fim: fimStr, label: `${fmt(inicioStr)} a ${fmt(fimStr)}` });
+    } catch (_e) {}
+    // comp_ref é o próprio último mês do período selecionado
     const comp = calcularCompetencia(fimStr);
     try {
       const { data } = await BalanceteAPI.fetch({
@@ -458,6 +501,14 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
       }
     }
 
+    // PIS/COFINS devem estar preenchidos e > 0
+    const pisNum = Number(String(form.aliquota_pis || "").replace(",", "."));
+    const cofinsNum = Number(String(form.aliquota_cofins || "").replace(",", "."));
+    if (!Number.isFinite(pisNum) || pisNum <= 0 || !Number.isFinite(cofinsNum) || cofinsNum <= 0) {
+      setErro("Informe as alíquotas de PIS e COFINS.");
+      return false;
+    }
+
     return true;
   };
 
@@ -505,8 +556,11 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
 
   useEffect(() => {
     if (!initialData) {
+      // Nova simulação: limpar campos e garantir aba "Geral"
+      setForm(defaultForm());
       setRateiosMercadoria([]);
       setRateiosServico([]);
+      setActiveTab("geral");
       return;
     }
 
@@ -655,6 +709,8 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
         aliquota_inss_total: Number(toDecimal(form.aliquota_inss_total, 4)),
         aliquota_iss: toDotNumber(form.aliquota_iss),
         aliquota_icms: toDotNumber(form.aliquota_icms),
+        aliquota_pis: Number(toDecimal(form.aliquota_pis, 2)),
+        aliquota_cofins: Number(toDecimal(form.aliquota_cofins, 2)),
 
         custo_mercadorias: toDotNumber(form.custo_mercadorias),
         custo_servicos: toDotNumber(form.custo_servicos),
@@ -956,22 +1012,7 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
                   <option value="Outras">Outras</option>
                 </select>
               </div>
-              <div>
-                <label>ISS (%)</label>
-                <input
-                  inputMode="decimal"
-                  value={form.aliquota_iss}
-                  onChange={(e) => onChange("aliquota_iss", e.target.value)}
-                />
-              </div>
-              <div>
-                <label>ICMS (%)</label>
-                <input
-                  inputMode="decimal"
-                  value={form.aliquota_icms}
-                  onChange={(e) => onChange("aliquota_icms", e.target.value)}
-                />
-              </div>
+              {/* ISS/ICMS removidos da tela inicial; disponíveis na aba Tributos */}
               <div>
                 <label>CNAE</label>
                 <input
@@ -1013,7 +1054,14 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
                 />
               </div>
               <div>
-                <label>Receita 12 meses</label>
+                <label>
+                  Receita 12 meses
+                  {rbt12Interval && (
+                    <span title={`RBT12: ${rbt12Interval.label}`} style={{ marginLeft: 6, verticalAlign: "middle", cursor: "help" }}>
+                      <Info size={16} />
+                    </span>
+                  )}
+                </label>
                 <input
                   inputMode="decimal"
                   value={form.receita_12_meses}
@@ -1157,6 +1205,41 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
                 />
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* PIS / COFINS (federais) */}
+      {showSection("federais") && (
+        <div className={"card collapsible " + (collapsed["federais"] ? "collapsed" : "")} id="federais">
+          <div className="card-header" onClick={() => toggleCollapse("federais")}>
+            <h4>PIS / COFINS</h4>
+            <span className="card-chevron">{collapsed["federais"] ? "⯈" : "⯆"}</span>
+          </div>
+          <div className="card-body">
+            <div className="grid-impostos">
+              <div>
+                <label>PIS (%)</label>
+                <input
+                  inputMode="decimal"
+                  value={form.aliquota_pis}
+                  onChange={(e) => onChange("aliquota_pis", e.target.value)}
+                  placeholder={aliqPisDefault}
+                />
+              </div>
+              <div>
+                <label>COFINS (%)</label>
+                <input
+                  inputMode="decimal"
+                  value={form.aliquota_cofins}
+                  onChange={(e) => onChange("aliquota_cofins", e.target.value)}
+                  placeholder={aliqCofinsDefault}
+                />
+              </div>
+            </div>
+            <small style={{ display: "block", marginTop: 8, color: "#666" }}>
+              Valores padrão carregados da base Cumulativa (Presumido). Você pode ajustar conforme necessário.
+            </small>
           </div>
         </div>
       )}
@@ -1493,30 +1576,7 @@ export default function NovaSimulacao({ onSaved, initialData = null, allowImport
         </div>
       )}
 
-      {resultado && showSection("resultado") && (
-        <div className="card" style={{ marginTop: 16 }}>
-          <h4>Resultado</h4>
-          <div className="resumo-totais">
-            <div className="pill">
-              <span>Simples</span>
-              <strong>{moeda((resultado && resultado.simples && resultado.simples.TOTAL) || 0)}</strong>
-            </div>
-            <div className="pill">
-              <span>Presumido</span>
-              <strong>{moeda((resultado && resultado.presumido && resultado.presumido.TOTAL) || 0)}</strong>
-            </div>
-            <div className="pill">
-              <span>Real</span>
-              <strong>{moeda((resultado && resultado.real && resultado.real.TOTAL) || 0)}</strong>
-            </div>
-          </div>
-          <div className="grid-3">
-            <TabelaRegime titulo="Simples" data={resultado.simples} />
-            <TabelaRegime titulo="Presumido" data={resultado.presumido} />
-            <TabelaRegime titulo="Real" data={resultado.real} />
-          </div>
-        </div>
-      )}
+      {/* Seção Resultado removida */}
 
       <Modal
         show={showImportModal}

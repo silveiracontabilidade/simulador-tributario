@@ -24,10 +24,14 @@ def _tributacao_por_cnpj_digits(cnpj_digits: str) -> Optional[str]:
             OR REPLACE(REPLACE(REPLACE(REPLACE(IFNULL(CNPJ_Original, ''), '.', ''), '-', ''), '/', ''), ' ', '') = %s
         LIMIT 1
     """
-    with connections["dp"].cursor() as cursor:
-        cursor.execute(query, [cnpj_digits, cnpj_digits])
-        row = cursor.fetchone()
-    return row[0] if row else None
+    try:
+        with connections["dp"].cursor() as cursor:
+            cursor.execute(query, [cnpj_digits, cnpj_digits])
+            row = cursor.fetchone()
+        return row[0] if row else None
+    except Exception:
+        # Falha na conexão/consulta do banco secundário não deve quebrar a API.
+        return None
 
 
 def obter_tributacao_por_cnpj(cnpj: str) -> Optional[str]:

@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { AliquotaFederalAPI } from "../../api";
+import { Pencil, Trash2, Save, X } from "lucide-react";
 
 export function AliquotaFederal() {
   const [dados, setDados] = useState([]);
   const [novo, setNovo] = useState({ imposto: "", aliquota: "", base_calculo: "" });
   const [filtro, setFiltro] = useState(""); // 🔹 estado do filtro
+  const [editId, setEditId] = useState(null);
+  const [editRow, setEditRow] = useState({ imposto: "", aliquota: "", base_calculo: "" });
 
   const carregar = async () => {
     const { data } = await AliquotaFederalAPI.list();
@@ -20,7 +23,6 @@ export function AliquotaFederal() {
   };
 
   const excluir = async (id) => {
-    if (!window.confirm("Excluir alíquota federal?")) return;
     await AliquotaFederalAPI.delete(id);
     carregar();
   };
@@ -87,16 +89,41 @@ export function AliquotaFederal() {
           {/* 🔹 Lista filtrada */}
           {dadosFiltrados.map((d) => (
             <tr key={d.id}>
-              <td>{d.imposto}</td>
-              <td>{d.aliquota}</td>
-              <td>{d.base_calculo}</td>
               <td>
-                <button
-                  className="btn btn-small btn-danger"
-                  onClick={() => excluir(d.id)}
-                >
-                  Excluir
-                </button>
+                {editId === d.id ? (
+                  <input value={editRow.imposto} onChange={(e)=>setEditRow({ ...editRow, imposto: e.target.value })} />
+                ) : d.imposto}
+              </td>
+              <td>
+                {editId === d.id ? (
+                  <input type="number" value={editRow.aliquota} onChange={(e)=>setEditRow({ ...editRow, aliquota: e.target.value })} />
+                ) : d.aliquota}
+              </td>
+              <td>
+                {editId === d.id ? (
+                  <input value={editRow.base_calculo} onChange={(e)=>setEditRow({ ...editRow, base_calculo: e.target.value })} />
+                ) : d.base_calculo}
+              </td>
+              <td>
+                {editId === d.id ? (
+                  <span className="action-icons">
+                    <button className="icon-btn" title="Salvar" onClick={async ()=>{ await AliquotaFederalAPI.update(d.id, editRow); setEditId(null); carregar(); }}>
+                      <Save />
+                    </button>
+                    <button className="icon-btn" title="Cancelar" onClick={()=>setEditId(null)}>
+                      <X />
+                    </button>
+                  </span>
+                ) : (
+                  <span className="action-icons">
+                    <button className="icon-btn" title="Editar" onClick={()=>{ setEditId(d.id); setEditRow({ imposto: d.imposto, aliquota: d.aliquota, base_calculo: d.base_calculo }); }}>
+                      <Pencil />
+                    </button>
+                    <button className="icon-btn danger" title="Excluir" onClick={() => excluir(d.id)}>
+                      <Trash2 />
+                    </button>
+                  </span>
+                )}
               </td>
             </tr>
           ))}
@@ -105,4 +132,3 @@ export function AliquotaFederal() {
     </div>
   );
 }
-

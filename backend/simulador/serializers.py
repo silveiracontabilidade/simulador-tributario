@@ -275,6 +275,24 @@ class SimulacaoSerializer(serializers.ModelSerializer):
                     "aliquota_inss_total": "Informe a alíquota única de INSS (ou o valor de INSS patronal informado)."
                 })
 
+        # PIS/COFINS: obrigatórios para o cálculo (trazidos da tabela, mas editáveis)
+        def get_num(nome, padrao=0):
+            val = attrs.get(nome)
+            if val is None and self.instance is not None:
+                val = getattr(self.instance, nome, padrao)
+            try:
+                return Decimal(val if val not in (None, "") else padrao)
+            except Exception:
+                return Decimal(padrao)
+
+        pis = get_num("aliquota_pis")
+        cofins = get_num("aliquota_cofins")
+        if pis <= 0 or cofins <= 0:
+            raise serializers.ValidationError({
+                "aliquota_pis": "Informe a alíquota de PIS.",
+                "aliquota_cofins": "Informe a alíquota de COFINS.",
+            })
+
         return attrs
 
     def _salvar_rateios(self, instance, mercadorias, servicos):

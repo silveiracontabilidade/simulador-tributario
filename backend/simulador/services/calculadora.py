@@ -47,6 +47,9 @@ class CalculadoraTributaria:
         self.desoneracao = bool(self.s.desoneracao_folha)
         self.aliq_iss = _q(self.s.aliquota_iss)
         self.aliq_icms = _q(self.s.aliquota_icms)
+        # PIS/COFINS informados pelo usuário (ou carregados via UI)
+        self.aliq_pis = _q(getattr(self.s, 'aliquota_pis', 0) or 0)
+        self.aliq_cofins = _q(getattr(self.s, 'aliquota_cofins', 0) or 0)
 
         # novos parâmetros
         self.custo_mercadorias = _q(self.s.custo_mercadorias)
@@ -186,11 +189,9 @@ class CalculadoraTributaria:
         irpj = base_irpj * D("0.15") + (excedente * D("0.10") if excedente > 0 else D("0.00"))
         csll = base_csll * D("0.09")
 
-        # PIS/COFINS cumulativos via AliquotaFederal
-        pis_aliq = self._aliquota_federal("PIS", "Cumulativo", default="0.65")
-        cofins_aliq = self._aliquota_federal("COFINS", "Cumulativo", default="3.00")
-        pis = self.receita_domestica * (pis_aliq / 100)
-        cofins = self.receita_domestica * (cofins_aliq / 100)
+        # PIS/COFINS (valores informados; espera-se que venham da base federal via UI)
+        pis = self.receita_domestica * (self.aliq_pis / 100)
+        cofins = self.receita_domestica * (self.aliq_cofins / 100)
 
         # ISS e ICMS
         iss = self.receita_servicos * (self.aliq_iss / 100)
@@ -234,8 +235,9 @@ class CalculadoraTributaria:
         # Aliquotas fixas / federais
         irpj_aliq = self._aliquota_fixa("IRPJ", default="15.00")
         csll_aliq = self._aliquota_fixa("CSLL", default="9.00")
-        pis_aliq = self._aliquota_federal("PIS", "Nao Cumulativo", default="1.65")
-        cofins_aliq = self._aliquota_federal("COFINS", "Nao Cumulativo", default="7.60")
+        # PIS/COFINS não cumulativos: usamos os valores informados
+        pis_aliq = self.aliq_pis
+        cofins_aliq = self.aliq_cofins
 
         # IRPJ
         excedente = lucro_pos - _q(20000 * self.meses)

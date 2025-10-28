@@ -91,6 +91,39 @@
   font-size: 0.72rem;
 }
 
+/* Botões de ícone (fundo transparente, clique direto no ícone) */
+.icon-btn {
+  background: transparent;
+  border: none;
+  padding: 0.2rem;
+  margin: 0 0.1rem;
+  cursor: pointer;
+  color: #666;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover {
+  color: var(--azul);
+}
+
+.icon-btn.danger:hover {
+  color: #c0392b;
+}
+
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Agrupador horizontal de ícones */
+.action-icons {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
 .tab-content .filtro {
   margin-bottom: 0.8rem;
   padding: 0.4rem;

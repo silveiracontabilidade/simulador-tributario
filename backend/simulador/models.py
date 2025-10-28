@@ -57,6 +57,9 @@ class Simulacao(models.Model):
 
     aliquota_iss = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     aliquota_icms = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    # PIS/COFINS: valores utilizados no cálculo (podem ser preenchidos pelo usuário)
+    aliquota_pis = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    aliquota_cofins = models.DecimalField(max_digits=5, decimal_places=2, default=0)
 
     regime_atual = models.CharField(max_length=20, choices=REGIME_CHOICES)
     

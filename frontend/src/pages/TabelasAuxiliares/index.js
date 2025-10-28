@@ -4,7 +4,6 @@ import "./TabelasAuxiliares.css";
 
 import { CnaeImpedimento } from "./CnaeImpedimento";
 import { AliquotaFederal } from "./AliquotaFederal";
-import { AliquotaFixa } from "./AliquotaFixa";
 import { FaixasSimples } from "./FaixasSimples";
 import { BasePresumido } from "./BasePresumido";
 import { AnexosSimples } from "./AnexosSimples";
@@ -15,7 +14,6 @@ export default function TabelasAuxiliares() {
     { key: "anexos", label: "Anexos Simples", comp: <AnexosSimples /> },
     { key: "faixas", label: "Faixas Simples", comp: <FaixasSimples /> },
     { key: "presumido", label: "Base Presumido", comp: <BasePresumido /> },
-    { key: "aliq_fixa", label: "Alíquotas Fixas", comp: <AliquotaFixa /> },
     { key: "aliq_federal", label: "Alíquotas Federais", comp: <AliquotaFederal /> },
   ];
 
