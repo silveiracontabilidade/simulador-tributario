@@ -1,7 +1,30 @@
 import axios from "axios";
 
+// Detecta automaticamente a URL da API:
+// - Se REACT_APP_API_URL estiver definida, usa ela.
+// - Se estiver rodando no browser, usa o mesmo host do frontend:
+//     - Em dev (porta 3000/3001), assume backend na porta 8001 do mesmo host.
+//     - Em produção, usa `${origin}/api`.
+// - Fallback: http://127.0.0.1:8001/api
+const resolvedBaseURL = (() => {
+  if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
+  if (typeof window !== "undefined" && window.location) {
+    try {
+      const { origin } = window.location;
+      const url = new URL(origin);
+      const host = url.hostname;
+      const port = url.port;
+      if (port === "3000" || port === "3001") {
+        return `http://${host}:8001/api`;
+      }
+      return `${origin}/api`;
+    } catch (_) {}
+  }
+  return "http://127.0.0.1:8001/api";
+})();
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://127.0.0.1:8000/api",
+  baseURL: resolvedBaseURL,
   timeout: 20000,
 });
 
